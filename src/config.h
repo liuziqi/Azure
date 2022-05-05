@@ -322,8 +322,8 @@ public:
 
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name, const T &default_value, const std::string &description="") {
-        auto it = s_data.find(name);
-        if(it != s_data.end()) {
+        auto it = GetData().find(name);
+        if(it != GetData().end()) {
             auto tmp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);     // 失败返回nullptr
             if(tmp) {   // key已存在，且值如果能转成与T的指针(说明类型对的上)
                 AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "Lookup name=" << name << " exists";
@@ -342,15 +342,15 @@ public:
 
         // 这里typename说明ConfigVar<T>::ptr是一个类型而不是变量
         typename ConfigVar<T>::ptr v(new ConfigVar<T>(name, default_value, description));
-        s_data[name] = v;
+        GetData()[name] = v;
         return v;
     }
 
     // 返回派生类指针类型
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name) {
-        auto it = s_data.find(name);
-        if(it == s_data.end()) {
+        auto it = GetData().find(name);
+        if(it == GetData().end()) {
             return nullptr;
         }
         return std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
@@ -362,7 +362,11 @@ public:
     static void LoadFromYaml(const YAML::Node &root);
 
 private:
-    static ConfigVarMap s_data;
+    // NOTE 使用函数的方式获取静态变量，防止其他静态函数使用该静态变量时，因为静态变量的初始化无序性导致访问出错
+    static ConfigVarMap &GetData() {
+        static ConfigVarMap s_data;
+        return s_data;
+    }
 };
 
 }

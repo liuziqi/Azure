@@ -2,12 +2,9 @@
 
 namespace azure {
 
-// 静态变量外部初始化
-Config::ConfigVarMap Config::s_data;
-
 ConfigVarBase::ptr Config::LookupBase(const std::string name) {
-    auto it = s_data.find(name);
-    return it == s_data.end() ? nullptr : it->second;
+    auto it = GetData().find(name);
+    return it == GetData().end() ? nullptr : it->second;
 }
 
 // A.B = 10, A.C = str

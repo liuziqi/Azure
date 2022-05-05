@@ -1,15 +1,15 @@
 logs:
   - name: root
     level: info
-    formatter: "%d%T%m%n"
+    formatter: "%d%T%r%T%t%T%F%T[%p]%T[%c]%T%f:%l%T%m%n"
     appender:
       - type: FileLogAppender
-        path: /home/lzq/Azure/log/log.txt
+        file: /home/lzq/Azure/log/log.txt
       - type: StdoutLogAppender
   - name: system
     level: debug
-    formatter: "%d%T%m%n"
+    formatter: "%d%T%r%T%t%T%F%T[%p]%T[%c]%T%f:%l%T%m%n"
     appender:
       - type: FileLogAppender
-        path: /home/lzq/Azure/log/log.txt
+        file: /home/lzq/Azure/log/log.txt
       - type: StdoutLogAppender

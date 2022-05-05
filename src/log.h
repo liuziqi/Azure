@@ -15,7 +15,6 @@
 #include <cstdarg>
 #include "util.h"
 #include "singleton.h"
-#include "config.h"
 
 #define AZURE_LOG_LEVEL(logger, level) \
     if(logger->getLevel() <= level) \
@@ -63,6 +62,7 @@ public:
     };
 
     static const char *ToString(LogLevel::Level level);
+    static LogLevel::Level FromString(const std::string str);
 };
 
 // 日志事件

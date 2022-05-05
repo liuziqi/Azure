@@ -1,4 +1,5 @@
 #include "log.h"
+#include "config.h"
 
 namespace azure {
 
@@ -10,11 +11,11 @@ const char *LogLevel::ToString(LogLevel::Level level) {
         return #name; \
         break;
     
-    XX(DEBUG);
-    XX(INFO);
-    XX(WARN);
-    XX(ERROR);
-    XX(FATAL);
+    XX(DEBUG)
+    XX(INFO)
+    XX(WARN)
+    XX(ERROR)
+    XX(FATAL)
 #undef XX
 
     default:
@@ -22,6 +23,20 @@ const char *LogLevel::ToString(LogLevel::Level level) {
         break;
     }
     return "UNKNOWN";
+}
+
+LogLevel::Level LogLevel::FromString(const std::string str) {
+#define XX(name) \
+    if(str == #name) { \
+        return LogLevel::name; \
+    }
+    XX(DEBUG)
+    XX(INFO)
+    XX(WARN)
+    XX(ERROR)
+    XX(FATAL)
+    return LogLevel::UNKNOWN;
+#undef XX
 }
 
 LogEventWrap::LogEventWrap(LogEvent::ptr e)
@@ -433,7 +448,6 @@ void LogFormatter::init() {
 
     for(auto &v : vec) {
         // std::cout << "(" << std::get<0>(v) << ")--(" << std::get<1>(v) << ")--(" << std::get<2>(v) << ")" << std::endl;
-
         if(std::get<2>(v) == 0) {
             m_items.push_back(FormatItem::ptr(new StringFormatItem(std::get<0>(v))));
         }
@@ -450,7 +464,6 @@ void LogFormatter::init() {
             }
         }
     }
-
     // std::cout << m_items.size() << std::endl;
 }
 
@@ -498,6 +511,88 @@ struct LogDefine {
     }
 };
 
+// 对LogDefine偏特化，没有按视频里那样对set<LogDefine>偏特化
+template<>
+class LexicalCast<std::string, LogDefine> {
+public:
+    LogDefine operator()(const std::string &str) {
+        YAML::Node node = YAML::Load(str);
+        LogDefine ld;
+        ld.name = node["name"].as<std::string>();
+        ld.level = LogLevel::FromString(node["level"].IsDefined() ? node["level"].as<std::string>() : "");
+        if(node["formatter"].IsDefined()) {
+            ld.formatter = node["formatter"].as<std::string>();
+        }
+
+        if(node["appenders"].IsDefined()) {
+            for(size_t i = 0; i < node["appenders"].size(); ++i) {
+                auto a = node["appenders"][i];
+                if(!a["type"].IsDefined()) {
+                    std::cout << "log config error: appender type is null, " << a << std::endl;
+                    continue;
+                }
+                std::string type = a["type"].as<std::string>();
+                LogAppenderDefine lad;
+                if(type == "FileLogAppender") {
+                    lad.type = 1;
+                    if(!a["file"].IsDefined()) {
+                        std::cout << "log config error: fileappender file is null, " << a << std::endl;
+                        continue;
+                    }
+                    lad.file = a["file"].as<std::string>();
+                    if(a["formatter"].IsDefined()) {
+                        lad.formatter = a["formatter"].as<std::string>();
+                    }
+                }
+                else if(type == "StdoutLogAppender") {
+                    lad.type = 2;
+                }
+                else {
+                    std::cout << "log config error: appender type is invalid: " << type << std::endl;
+                    continue;
+                }
+
+                ld.appenders.push_back(lad);
+            }
+        }
+        return ld;
+    }
+};
+
+template<>
+class LexicalCast<LogDefine, std::string> {
+public:
+    std::string operator()(const LogDefine &ld) {
+        YAML::Node node;
+        node["name"] = ld.name;
+        node["level"] = LogLevel::ToString(ld.level);
+        if(!ld.formatter.empty()) {
+            node["formatter"] = ld.formatter;
+        }
+        for(auto &a : ld.appenders) {
+            YAML::Node na;
+            if(a.type == 1) {
+                na["type"] = "FileLogAppender";
+                na["file"] = a.file;
+            }
+            else if(a.type == 2) {
+                na["type"] = "StdoutAppender";
+            }
+
+            na["level"] = LogLevel::ToString(a.level);
+
+            if(!a.formatter.empty()) {
+                na["formatter"] = a.formatter;
+            }
+
+            node["appenders"].push_back(na);
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
 // Log配置保存的地方
 azure::ConfigVar<std::set<LogDefine>>::ptr g_log_defines = azure::Config::Lookup("logs", std::set<LogDefine>(), "logs configuration");
 
@@ -505,36 +600,39 @@ azure::ConfigVar<std::set<LogDefine>>::ptr g_log_defines = azure::Config::Lookup
 struct LogIniter {
     LogIniter() {
         g_log_defines->addListener(0xF1E231, [](const std::set<LogDefine> &old_value, const std::set<LogDefine> &new_value) {
+
+            AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "on_logger_conf_changed";
+
             for(auto &i : new_value) {
                 auto it = old_value.find(i);
+                azure::Logger::ptr logger;
                 if(it == old_value.end()) { // 新的有，旧的没有，新增logger
-                    // 新增logger
-                    azure::Logger::ptr logger(new azure::Logger(i.name));
-                    logger->setLevel(i.level);
-                    if(!i.formatter.empty()) {
-                        logger->setFormatter(i.formatter);
-                    }
-
-                    logger->clearAppender();
-                    for(auto &a : i.appenders) {
-                        azure::LogAppender::ptr ap;
-                        if(a.type == 1) {
-                            ap.reset(new FileLogAppender(a.file));
-                        }
-                        else if(a.type == 2) {
-                            ap.reset(new StdoutLogAppender);
-                        }
-                        ap->setLevel(a.level);
-                        logger->addAppender(ap);
-                    }
+                    logger = AZURE_LOG_NAME(i.name);    // 新增logger
                 }
-                // FIXME 修改logger
                 else {  // 新的有，旧的也有
                     if(!(i == *it)) {
-                        // 两个不等，更新logger
+                        logger = AZURE_LOG_NAME(i.name);    // 两个不等，更新logger
                     }
                 }
+                // 新增和更新共有的操作
+                logger->setLevel(i.level);
+                if(!i.formatter.empty()) {
+                    logger->setFormatter(i.formatter);
+                }
+                logger->clearAppender();
+                for(auto &a : i.appenders) {
+                    azure::LogAppender::ptr ap;
+                    if(a.type == 1) {
+                        ap.reset(new FileLogAppender(a.file));
+                    }
+                    else if(a.type == 2) {
+                        ap.reset(new StdoutLogAppender);
+                    }
+                    ap->setLevel(a.level);
+                    logger->addAppender(ap);
+                }
             }
+
             for(auto &i : old_value) {
                 auto it = new_value.find(i);
                 if(it == new_value.end()) { // 旧的有，新的没有，删除logger
@@ -543,16 +641,14 @@ struct LogIniter {
                     logger->clearAppender();    // 删除了就用root logger输出
                 }
             }
-            // 删除
-            // 修改
         });
     }
+    // TODO 输出已加载的logger信息
 };
 
 static LogIniter __log__init;
 
 void LoggerManager::init() {
-
 }
 
 }

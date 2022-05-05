@@ -102,6 +102,7 @@ public:
 
 namespace azure {
 
+// LEARN 了解下模板偏特化相关的知识
 // 模板偏特化，不需要模板参数了
 template<>
 class LexicalCast<std::string, Person> {
@@ -172,9 +173,16 @@ void test_class() {
 #undef XX_PM
 }
 
+// 加载文件后会触发配置变化 --> 出发事件 --> 变更配置
+void test_log() {
+    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_cfg.yml");
+    azure::Config::LoadFromYaml(root);
+}
+
 int main(int argc, char **argv) {
     // test_yaml();
     // test_config();
-    test_class();
+    // test_class();
+    test_log();
     return 0;
 }
