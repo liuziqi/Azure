@@ -33,7 +33,7 @@ void print_yaml(const YAML::Node &node, int level) {
 }
 
 void test_yaml() {
-    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/bin/conf/test_cfg.yml");
+    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/test_cfg.yml");
     print_yaml(root, 0);
     // AZURE_LOG_INFO(AZURE_LOG_ROOT()) << root;
 }
@@ -68,7 +68,7 @@ void test_config() {
     XX_M(g_str_int_map_value_config, str_int_map, before);
     XX_M(g_str_int_unordered_map_value_config, str_int_unordered_map, before);
 
-    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/bin/conf/test_cfg.yml");
+    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/test_cfg.yml");
     azure::Config::LoadFromYaml(root);
 
     AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "after: " << g_int_value_config->getValue();
@@ -160,7 +160,7 @@ void test_class() {
     AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "before: g_person_vec_map size=" << g_person_vec_map->getValue().size();
     AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "before: g_person_vec_map:\n" << g_person_vec_map->toString();
 
-    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/bin/conf/test_cfg.yml");
+    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/test_cfg.yml");
     azure::Config::LoadFromYaml(root);
 
     AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "after: " << g_person->getValue().toString() << "\n" << g_person->toString();

@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
     
     logger->addAppender(azure::LogAppender::ptr(new azure::StdoutLogAppender));
 
-    azure::FileLogAppender::ptr file_appender(new azure::FileLogAppender("./log.txt"));
+    azure::FileLogAppender::ptr file_appender(new azure::FileLogAppender("/home/lzq/Azure/log/log.txt"));
     file_appender->setLevel(azure::LogLevel::ERROR);
     logger->addAppender(file_appender);
 

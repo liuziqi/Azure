@@ -216,9 +216,14 @@ void Logger::delAppender(LogAppender::ptr appender) {
     }
 }
 
+void Logger::clearAppender() {
+    m_appenders.clear();
+}
+
 void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     if(level >= m_level) {
         auto self = shared_from_this();
+        // NOTE 解决了问题：如果logger未定义则用root logger写，否则用定义的logger写，通过判断m_appenders是否为空实现
         // m_appenders不为空，用该logger输出
         if(!m_appenders.empty()) {
             for(auto &a : m_appenders) {
@@ -231,6 +236,23 @@ void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
         }
 
     }
+}
+
+void Logger::setFormatter(LogFormatter::ptr val) {
+    m_formatter = val;
+}
+
+void Logger::setFormatter(const std::string &val) {
+    azure::LogFormatter::ptr new_val(new azure::LogFormatter(val));
+    if(new_val->isError()) {
+        std::cout << "Logger setFormatter name=" << m_name << " value=" << val << " invalid formatter" << std::endl;
+        return;
+    }
+    m_formatter = new_val;
+}
+
+LogFormatter::ptr Logger::getFormatter() {
+    return m_formatter;
 }
 
 // void Logger::debug(LogEvent::ptr event) {
@@ -354,6 +376,7 @@ void LogFormatter::init() {
                     // 没有 '}'，错误格式
                     if(i == m_pattern.size()) {
                         vec.push_back({"lack of '}'", "", 2});
+                        m_error = true;
                     }
                     else {
                         vec.push_back({fmt, m_pattern.substr(start, i - start), 1});
@@ -393,6 +416,7 @@ void LogFormatter::init() {
         // 单个'%'后面没有字符了，错误格式
         else {
             vec.push_back({"single '%'", "", 2});
+            m_error = true;
         }
     }
 
@@ -418,6 +442,7 @@ void LogFormatter::init() {
             if(it == s_format_items.end()) {
                 // std::cout << "endl" << std::endl;
                 m_items.push_back(FormatItem::ptr(new StringFormatItem("<error_format: " + std::get<0>(v) + ">")));
+                m_error = true;
             }
             else {
                 // std::cout << std::get<0>(v) << std::endl;
@@ -443,6 +468,91 @@ Logger::ptr LoggerManager::getLogger(const std::string &name) {
     logger->m_root = m_root;    // LoggerManager是Logger的友元
     m_loggers[name] = logger;
     return logger;
+}
+
+// Log配置相关的结构体，从配置文件中读取配置选项然后保存到结构体里
+struct LogAppenderDefine {
+    int type = 0;   // 1 File, 2 Stdout
+    LogLevel::Level level = LogLevel::UNKNOWN;
+    std::string formatter;
+    std::string file;
+
+    bool operator==(const LogAppenderDefine &oth) const {
+        return type == oth.type && level == oth.level && formatter == oth.formatter && file == oth.file;
+    }
+};
+
+// Log配置相关的结构体，从配置文件中读取配置选项然后保存到结构体里
+struct LogDefine {
+    std::string name;
+    LogLevel::Level level;
+    std::string formatter;
+    std::vector<LogAppenderDefine> appenders;
+
+    bool operator==(const LogDefine &oth) const {
+        return name == oth.name && level == oth.level && formatter == oth.formatter && appenders == oth.appenders;
+    }
+
+    bool operator<(const LogDefine &oth) const {
+        return name < oth.name;
+    }
+};
+
+// Log配置保存的地方
+azure::ConfigVar<std::set<LogDefine>>::ptr g_log_defines = azure::Config::Lookup("logs", std::set<LogDefine>(), "logs configuration");
+
+// NOTE 静态变量在main函数之前执行，这里的构造函数可以执行一些需要main之前进行的操作
+struct LogIniter {
+    LogIniter() {
+        g_log_defines->addListener(0xF1E231, [](const std::set<LogDefine> &old_value, const std::set<LogDefine> &new_value) {
+            for(auto &i : new_value) {
+                auto it = old_value.find(i);
+                if(it == old_value.end()) { // 新的有，旧的没有，新增logger
+                    // 新增logger
+                    azure::Logger::ptr logger(new azure::Logger(i.name));
+                    logger->setLevel(i.level);
+                    if(!i.formatter.empty()) {
+                        logger->setFormatter(i.formatter);
+                    }
+
+                    logger->clearAppender();
+                    for(auto &a : i.appenders) {
+                        azure::LogAppender::ptr ap;
+                        if(a.type == 1) {
+                            ap.reset(new FileLogAppender(a.file));
+                        }
+                        else if(a.type == 2) {
+                            ap.reset(new StdoutLogAppender);
+                        }
+                        ap->setLevel(a.level);
+                        logger->addAppender(ap);
+                    }
+                }
+                // FIXME 修改logger
+                else {  // 新的有，旧的也有
+                    if(!(i == *it)) {
+                        // 两个不等，更新logger
+                    }
+                }
+            }
+            for(auto &i : old_value) {
+                auto it = new_value.find(i);
+                if(it == new_value.end()) { // 旧的有，新的没有，删除logger
+                    auto logger = AZURE_LOG_NAME(i.name);
+                    logger->setLevel((LogLevel::Level)100);
+                    logger->clearAppender();    // 删除了就用root logger输出
+                }
+            }
+            // 删除
+            // 修改
+        });
+    }
+};
+
+static LogIniter __log__init;
+
+void LoggerManager::init() {
+
 }
 
 }

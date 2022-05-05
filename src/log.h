@@ -15,6 +15,7 @@
 #include <cstdarg>
 #include "util.h"
 #include "singleton.h"
+#include "config.h"
 
 #define AZURE_LOG_LEVEL(logger, level) \
     if(logger->getLevel() <= level) \
@@ -127,9 +128,12 @@ public:
 
     void init();
 
+    bool isError() const {return m_error;}
+
 private:
     std::string m_pattern;
     std::vector<FormatItem::ptr> m_items;
+    bool m_error = false;
 };
 
 // 日志输出地
@@ -170,9 +174,14 @@ public:
 
     void addAppender(LogAppender::ptr appender);
     void delAppender(LogAppender::ptr appender);
+    void clearAppender();
     LogLevel::Level getLevel() const {return m_level;}
     void setLevel(LogLevel::Level val) {m_level = val;}
     const std::string &getName() const {return m_name;}
+
+    void setFormatter(LogFormatter::ptr val);
+    void setFormatter(const std::string &val);
+    LogFormatter::ptr getFormatter();
 
 private:
     std::string m_name;                         // 日志名称
@@ -208,9 +217,9 @@ class LoggerManager {
 public:
     LoggerManager();
     Logger::ptr getLogger(const std::string &name);
-
-    void init();
     Logger::ptr getRoot() const {return m_root;}
+    void init();
+
 private:
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;

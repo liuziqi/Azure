@@ -1,5 +1,0 @@
-/home/lzq/Azure/build/CMakeFiles/rebuild_cache.dir
-/home/lzq/Azure/build/CMakeFiles/edit_cache.dir
-/home/lzq/Azure/build/CMakeFiles/test_config.dir
-/home/lzq/Azure/build/CMakeFiles/test_log.dir
-/home/lzq/Azure/build/CMakeFiles/azure.dir

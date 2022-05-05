@@ -1,0 +1,2 @@
+2022-05-03 21:43:07	0	8644	0	[ERROR]	[root]	/home/lzq/Azure/tests/test_log.cpp:17	test macro error
+2022-05-03 21:43:07	0	8644	0	[ERROR]	[root]	/home/lzq/Azure/tests/test_log.cpp:19	test macro fmt error haha
