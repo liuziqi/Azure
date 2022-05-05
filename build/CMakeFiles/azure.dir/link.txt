@@ -1,1 +1,1 @@
-/usr/bin/g++ -fPIC  -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g  -shared -Wl,-soname,libazure.so -o ../lib/libazure.so CMakeFiles/azure.dir/src/log.cpp.o CMakeFiles/azure.dir/src/util.cpp.o 
+/usr/bin/g++ -fPIC  -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g  -shared -Wl,-soname,libazure.so -o ../lib/libazure.so CMakeFiles/azure.dir/src/log.cpp.o CMakeFiles/azure.dir/src/util.cpp.o CMakeFiles/azure.dir/src/config.cpp.o 

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <ctime>
 #include <cstdarg>
+#include "util.h"
 #include "singleton.h"
 
 #define AZURE_LOG_LEVEL(logger, level) \
@@ -40,9 +41,13 @@
 #define AZURE_LOG_FMT_ERROR(logger, fmt, ...) AZURE_LOG_FMT_LEVEL(logger, azure::LogLevel::ERROR, fmt, __VA_ARGS__)
 #define AZURE_LOG_FMT_FATAL(logger, fmt, ...) AZURE_LOG_FMT_LEVEL(logger, azure::LogLevel::FATAL, fmt, __VA_ARGS__)
 
+#define AZURE_LOG_ROOT() azure::LoggerMgr::GetInstance()->getRoot()
+#define AZURE_LOG_NAME(name) azure::LoggerMgr::GetInstance()->getLogger(name)
+
 namespace azure {
 
 class Logger;
+class LoggerManager;
 
 // 日志级别
 class LogLevel {
@@ -149,6 +154,7 @@ protected:
 
 // 日志器
 class Logger : public std::enable_shared_from_this<Logger> {
+friend class LoggerManager;
 public:
     typedef std::shared_ptr<Logger> ptr;
 
@@ -172,7 +178,8 @@ private:
     std::string m_name;                         // 日志名称
     LogLevel::Level m_level;                    // 日志级别
     std::list<LogAppender::ptr> m_appenders;    // Appender集合
-    LogFormatter::ptr m_formatter;              
+    LogFormatter::ptr m_formatter;        
+    Logger::ptr m_root;                         // 等同于LoggerManager的m_root，用来指示root logger
 };
 
 // 定义输出到文件的Appender
@@ -197,18 +204,19 @@ public:
     void log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override;
 };
 
-class LoggerManger {
+class LoggerManager {
 public:
-    LoggerManger();
+    LoggerManager();
     Logger::ptr getLogger(const std::string &name);
 
     void init();
+    Logger::ptr getRoot() const {return m_root;}
 private:
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;
 };
 
-typedef azure::Singleton<LoggerManger> LoggerMgr;
+typedef azure::Singleton<LoggerManager> LoggerMgr;
 
 }
 

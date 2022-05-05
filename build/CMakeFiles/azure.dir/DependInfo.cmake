@@ -4,6 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+  "/home/lzq/Azure/src/config.cpp" "/home/lzq/Azure/build/CMakeFiles/azure.dir/src/config.cpp.o"
   "/home/lzq/Azure/src/log.cpp" "/home/lzq/Azure/build/CMakeFiles/azure.dir/src/log.cpp.o"
   "/home/lzq/Azure/src/util.cpp" "/home/lzq/Azure/build/CMakeFiles/azure.dir/src/util.cpp.o"
   )

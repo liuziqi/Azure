@@ -114,17 +114,30 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named test
+# Target rules for targets named test_config
 
 # Build rule for target.
-test: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 test
-.PHONY : test
+test_config: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 test_config
+.PHONY : test_config
 
 # fast build rule for target.
-test/fast:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/build
-.PHONY : test/fast
+test_config/fast:
+	$(MAKE) -f CMakeFiles/test_config.dir/build.make CMakeFiles/test_config.dir/build
+.PHONY : test_config/fast
+
+#=============================================================================
+# Target rules for targets named test_log
+
+# Build rule for target.
+test_log: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 test_log
+.PHONY : test_log
+
+# fast build rule for target.
+test_log/fast:
+	$(MAKE) -f CMakeFiles/test_log.dir/build.make CMakeFiles/test_log.dir/build
+.PHONY : test_log/fast
 
 #=============================================================================
 # Target rules for targets named azure
@@ -138,6 +151,33 @@ azure: cmake_check_build_system
 azure/fast:
 	$(MAKE) -f CMakeFiles/azure.dir/build.make CMakeFiles/azure.dir/build
 .PHONY : azure/fast
+
+src/config.o: src/config.cpp.o
+
+.PHONY : src/config.o
+
+# target to build an object file
+src/config.cpp.o:
+	$(MAKE) -f CMakeFiles/azure.dir/build.make CMakeFiles/azure.dir/src/config.cpp.o
+.PHONY : src/config.cpp.o
+
+src/config.i: src/config.cpp.i
+
+.PHONY : src/config.i
+
+# target to preprocess a source file
+src/config.cpp.i:
+	$(MAKE) -f CMakeFiles/azure.dir/build.make CMakeFiles/azure.dir/src/config.cpp.i
+.PHONY : src/config.cpp.i
+
+src/config.s: src/config.cpp.s
+
+.PHONY : src/config.s
+
+# target to generate assembly for a file
+src/config.cpp.s:
+	$(MAKE) -f CMakeFiles/azure.dir/build.make CMakeFiles/azure.dir/src/config.cpp.s
+.PHONY : src/config.cpp.s
 
 src/log.o: src/log.cpp.o
 
@@ -193,32 +233,59 @@ src/util.cpp.s:
 	$(MAKE) -f CMakeFiles/azure.dir/build.make CMakeFiles/azure.dir/src/util.cpp.s
 .PHONY : src/util.cpp.s
 
-tests/test.o: tests/test.cpp.o
+tests/test_config.o: tests/test_config.cpp.o
 
-.PHONY : tests/test.o
+.PHONY : tests/test_config.o
 
 # target to build an object file
-tests/test.cpp.o:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/tests/test.cpp.o
-.PHONY : tests/test.cpp.o
+tests/test_config.cpp.o:
+	$(MAKE) -f CMakeFiles/test_config.dir/build.make CMakeFiles/test_config.dir/tests/test_config.cpp.o
+.PHONY : tests/test_config.cpp.o
 
-tests/test.i: tests/test.cpp.i
+tests/test_config.i: tests/test_config.cpp.i
 
-.PHONY : tests/test.i
+.PHONY : tests/test_config.i
 
 # target to preprocess a source file
-tests/test.cpp.i:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/tests/test.cpp.i
-.PHONY : tests/test.cpp.i
+tests/test_config.cpp.i:
+	$(MAKE) -f CMakeFiles/test_config.dir/build.make CMakeFiles/test_config.dir/tests/test_config.cpp.i
+.PHONY : tests/test_config.cpp.i
 
-tests/test.s: tests/test.cpp.s
+tests/test_config.s: tests/test_config.cpp.s
 
-.PHONY : tests/test.s
+.PHONY : tests/test_config.s
 
 # target to generate assembly for a file
-tests/test.cpp.s:
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/tests/test.cpp.s
-.PHONY : tests/test.cpp.s
+tests/test_config.cpp.s:
+	$(MAKE) -f CMakeFiles/test_config.dir/build.make CMakeFiles/test_config.dir/tests/test_config.cpp.s
+.PHONY : tests/test_config.cpp.s
+
+tests/test_log.o: tests/test_log.cpp.o
+
+.PHONY : tests/test_log.o
+
+# target to build an object file
+tests/test_log.cpp.o:
+	$(MAKE) -f CMakeFiles/test_log.dir/build.make CMakeFiles/test_log.dir/tests/test_log.cpp.o
+.PHONY : tests/test_log.cpp.o
+
+tests/test_log.i: tests/test_log.cpp.i
+
+.PHONY : tests/test_log.i
+
+# target to preprocess a source file
+tests/test_log.cpp.i:
+	$(MAKE) -f CMakeFiles/test_log.dir/build.make CMakeFiles/test_log.dir/tests/test_log.cpp.i
+.PHONY : tests/test_log.cpp.i
+
+tests/test_log.s: tests/test_log.cpp.s
+
+.PHONY : tests/test_log.s
+
+# target to generate assembly for a file
+tests/test_log.cpp.s:
+	$(MAKE) -f CMakeFiles/test_log.dir/build.make CMakeFiles/test_log.dir/tests/test_log.cpp.s
+.PHONY : tests/test_log.cpp.s
 
 # Help Target
 help:
@@ -228,17 +295,24 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... test"
+	@echo "... test_config"
+	@echo "... test_log"
 	@echo "... azure"
+	@echo "... src/config.o"
+	@echo "... src/config.i"
+	@echo "... src/config.s"
 	@echo "... src/log.o"
 	@echo "... src/log.i"
 	@echo "... src/log.s"
 	@echo "... src/util.o"
 	@echo "... src/util.i"
 	@echo "... src/util.s"
-	@echo "... tests/test.o"
-	@echo "... tests/test.i"
-	@echo "... tests/test.s"
+	@echo "... tests/test_config.o"
+	@echo "... tests/test_config.i"
+	@echo "... tests/test_config.s"
+	@echo "... tests/test_log.o"
+	@echo "... tests/test_log.i"
+	@echo "... tests/test_log.s"
 .PHONY : help
 
 

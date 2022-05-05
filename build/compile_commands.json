@@ -1,8 +1,13 @@
 [
 {
   "directory": "/home/lzq/Azure/build",
-  "command": "/usr/bin/g++     -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g   -o CMakeFiles/test.dir/tests/test.cpp.o -c /home/lzq/Azure/tests/test.cpp",
-  "file": "/home/lzq/Azure/tests/test.cpp"
+  "command": "/usr/bin/g++     -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g   -o CMakeFiles/test_config.dir/tests/test_config.cpp.o -c /home/lzq/Azure/tests/test_config.cpp",
+  "file": "/home/lzq/Azure/tests/test_config.cpp"
+},
+{
+  "directory": "/home/lzq/Azure/build",
+  "command": "/usr/bin/g++     -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g   -o CMakeFiles/test_log.dir/tests/test_log.cpp.o -c /home/lzq/Azure/tests/test_log.cpp",
+  "file": "/home/lzq/Azure/tests/test_log.cpp"
 },
 {
   "directory": "/home/lzq/Azure/build",
@@ -13,5 +18,10 @@
   "directory": "/home/lzq/Azure/build",
   "command": "/usr/bin/g++  -Dazure_EXPORTS   -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g -fPIC   -o CMakeFiles/azure.dir/src/util.cpp.o -c /home/lzq/Azure/src/util.cpp",
   "file": "/home/lzq/Azure/src/util.cpp"
+},
+{
+  "directory": "/home/lzq/Azure/build",
+  "command": "/usr/bin/g++  -Dazure_EXPORTS   -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function -g -fPIC   -o CMakeFiles/azure.dir/src/config.cpp.o -c /home/lzq/Azure/src/config.cpp",
+  "file": "/home/lzq/Azure/src/config.cpp"
 }
 ]
