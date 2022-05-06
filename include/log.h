@@ -141,15 +141,17 @@ private:
 
 // 日志输出地
 class LogAppender {
+friend class Logger;
+
 public:
     typedef std::shared_ptr<LogAppender> ptr;
 
-    LogAppender() {m_level = LogLevel::DEBUG;}
+    LogAppender() {}    // 在子类构造函数不明确指出的情况下，子类自动执行父类的默认构造函数
     virtual ~LogAppender() {}
 
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
 
-    void setFormatter(LogFormatter::ptr val) {m_formatter = val;}
+    void setFormatter(LogFormatter::ptr val);
     LogFormatter::ptr getFormatter() const {return m_formatter;}
     void setLevel(LogLevel::Level level) {m_level = level;}
     LogLevel::Level getLevel() const {return m_level;}
@@ -158,7 +160,9 @@ public:
     virtual std::string toYamlString() = 0;
 
 protected:
-    LogLevel::Level m_level;
+    // 默认值自动继承
+    bool m_hasFormatter = false;    // 标识appender是否有自己的formatter（root的不算）
+    LogLevel::Level m_level = LogLevel::DEBUG;
     LogFormatter::ptr m_formatter;
 };
 

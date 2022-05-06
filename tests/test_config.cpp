@@ -180,13 +180,17 @@ void test_log() {
     static azure::Logger::ptr system_log = AZURE_LOG_NAME("system");    // 刚开始不存在
     AZURE_LOG_INFO(system_log) << "hello system";
 
-    std::cout << "before: " << azure::LoggerMgr::GetInstance()->toYamlString() << std::endl;
+    std::cout << "before:\n" << azure::LoggerMgr::GetInstance()->toYamlString() << std::endl;
     YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_cfg.yml");
     azure::Config::LoadFromYaml(root);
     std::cout << "===================================" << std::endl;
-    std::cout << "after: " << azure::LoggerMgr::GetInstance()->toYamlString() << std::endl;
+    std::cout << "after:\n" << azure::LoggerMgr::GetInstance()->toYamlString() << std::endl;
 
     AZURE_LOG_INFO(system_log) << "hello system";   // system_log这时加载进来了
+
+    // 修改logger的formatter时，如果appender没有自己的formatter，也要随之改变
+    system_log->setFormatter("%d - %m%n");
+    AZURE_LOG_INFO(system_log) << "hello system";
 }
 
 int main(int argc, char **argv) {

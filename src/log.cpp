@@ -222,7 +222,8 @@ Logger::Logger(const std::string &name)
 
 void Logger::addAppender(LogAppender::ptr appender) {
     if(!appender->getFormatter()) {
-        appender->setFormatter(m_formatter);
+        // 如果appender没有formatter，就把root的formatter赋给它，但不设置标志位m_hasFormatter
+        appender->m_formatter = m_formatter;
     }
     // FIXME 先不考虑线程安全
     m_appenders.push_back(appender);
@@ -261,6 +262,11 @@ void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
 
 void Logger::setFormatter(LogFormatter::ptr val) {
     m_formatter = val;
+    for(auto &a : m_appenders) {
+        if(!a->m_hasFormatter) {
+            a->setFormatter(val);
+        }
+    }
 }
 
 void Logger::setFormatter(const std::string &val) {
@@ -269,7 +275,7 @@ void Logger::setFormatter(const std::string &val) {
         std::cout << "Logger setFormatter name=" << m_name << " value=" << val << " invalid formatter" << std::endl;
         return;
     }
-    m_formatter = new_val;
+    setFormatter(new_val);
 }
 
 LogFormatter::ptr Logger::getFormatter() {
@@ -313,6 +319,11 @@ std::string Logger::toYamlString() {
 //     log(LogLevel::FATAL, event);
 // }
 
+void LogAppender::setFormatter(LogFormatter::ptr val) { 
+    m_formatter = val;
+    m_hasFormatter = !!m_formatter;
+}
+
 FileLogAppender::FileLogAppender(const std::string &filename) 
     : LogAppender()
     , m_filename(filename) {
@@ -329,7 +340,7 @@ bool FileLogAppender::reopen() {
     if(m_filestream) {
         m_filestream.close();
     }
-    m_filestream.open(m_filename);
+    m_filestream.open(m_filename, std::ios::out | std::ios::app);
     return !!m_filestream;  // 转换成真正的bool值
 }
 
@@ -340,7 +351,7 @@ std::string FileLogAppender::toYamlString() {
     if(m_level != LogLevel::UNKNOWN) {
         node["level"] = LogLevel::ToString(m_level);
     }
-    if(m_formatter) {
+    if(m_hasFormatter && m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
     std::stringstream ss;
@@ -365,7 +376,7 @@ std::string StdoutLogAppender::toYamlString() {
     if(m_level != LogLevel::UNKNOWN) {
         node["level"] = LogLevel::ToString(m_level);
     }
-    if(m_formatter) {
+    if(m_hasFormatter && m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
     std::stringstream ss;
@@ -688,6 +699,17 @@ struct LogIniter {
                         ap.reset(new StdoutLogAppender);
                     }
                     ap->setLevel(a.level);
+                    if(!a.formatter.empty()) {
+                        LogFormatter::ptr fmt(new LogFormatter(a.formatter));
+                        if(!fmt->isError()) {
+                            ap->setFormatter(fmt);
+                        }
+                        else {
+                            std::cout << "logger name=" << i.name 
+                                    << ", appender type=" << a.type 
+                                    << ", appender formatter=" << a.formatter << " error" << std::endl;
+                        }
+                    }
                     logger->addAppender(ap);
                 }
             }
@@ -702,7 +724,6 @@ struct LogIniter {
             }
         });
     }
-    // TODO 输出已加载的logger信息
 };
 
 static LogIniter __log__init;
