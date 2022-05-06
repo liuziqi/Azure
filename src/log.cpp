@@ -25,16 +25,22 @@ const char *LogLevel::ToString(LogLevel::Level level) {
     return "UNKNOWN";
 }
 
-LogLevel::Level LogLevel::FromString(const std::string str) {
-#define XX(name) \
-    if(str == #name) { \
-        return LogLevel::name; \
+LogLevel::Level LogLevel::FromString(const std::string &str) {
+#define XX(level, v) \
+    if(str == #v) { \
+        return LogLevel::level; \
     }
-    XX(DEBUG)
-    XX(INFO)
-    XX(WARN)
-    XX(ERROR)
-    XX(FATAL)
+    XX(DEBUG, debug)
+    XX(INFO, info)
+    XX(WARN, warn)
+    XX(ERROR, error)
+    XX(FATAL, fatal)
+
+    XX(DEBUG, DEBUG)
+    XX(INFO, INFO)
+    XX(WARN, WARN)
+    XX(ERROR, ERROR)
+    XX(FATAL, FATAL)
     return LogLevel::UNKNOWN;
 #undef XX
 }
@@ -273,7 +279,9 @@ LogFormatter::ptr Logger::getFormatter() {
 std::string Logger::toYamlString() {
     YAML::Node node;
     node["name"] = m_name;
-    node["level"] = LogLevel::ToString(m_level);
+    if(m_level != LogLevel::UNKNOWN) {
+        node["level"] = LogLevel::ToString(m_level);
+    }
     if(m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
@@ -329,7 +337,9 @@ std::string FileLogAppender::toYamlString() {
     YAML::Node node;
     node["type"] = "FileLogAppender";
     node["file"] = m_filename;
-    node["level"] = LogLevel::ToString(m_level);
+    if(m_level != LogLevel::UNKNOWN) {
+        node["level"] = LogLevel::ToString(m_level);
+    }
     if(m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
@@ -352,7 +362,9 @@ void StdoutLogAppender::log(Logger::ptr logger, LogLevel::Level level, LogEvent:
 std::string StdoutLogAppender::toYamlString() {
     YAML::Node node;
     node["type"] = "StdoutLogAppender";
-    node["level"] = LogLevel::ToString(m_level);
+    if(m_level != LogLevel::UNKNOWN) {
+        node["level"] = LogLevel::ToString(m_level);
+    }
     if(m_formatter) {
         node["formatter"] = m_formatter->getPattern();
     }
@@ -608,7 +620,9 @@ public:
     std::string operator()(const LogDefine &ld) {
         YAML::Node node;
         node["name"] = ld.name;
-        node["level"] = LogLevel::ToString(ld.level);
+        if(ld.level != LogLevel::UNKNOWN) {
+            node["level"] = LogLevel::ToString(ld.level);
+        }
         if(!ld.formatter.empty()) {
             node["formatter"] = ld.formatter;
         }
@@ -622,7 +636,9 @@ public:
                 na["type"] = "StdoutAppender";
             }
 
-            na["level"] = LogLevel::ToString(a.level);
+            if(a.level != LogLevel::UNKNOWN) {
+                na["level"] = LogLevel::ToString(ld.level);
+            }
 
             if(!a.formatter.empty()) {
                 na["formatter"] = a.formatter;

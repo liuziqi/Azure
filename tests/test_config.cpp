@@ -2,6 +2,7 @@
 #include "log.h"
 #include <yaml-cpp/yaml.h>
 
+#if 0
 azure::ConfigVar<int>::ptr g_int_value_config = azure::Config::Lookup("system.port", (int)8080, "system port");
 azure::ConfigVar<float>::ptr g_float_value_config = azure::Config::Lookup("system.port", (float)80.80, "system port");    // 用来测试key相同但类型不同的情况
 azure::ConfigVar<std::vector<int>>::ptr g_int_vec_value_config = azure::Config::Lookup("system.int_vec", std::vector<int>{1, 2}, "system int vector");
@@ -172,11 +173,20 @@ void test_class() {
     AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "after: g_person_vec_map:\n" << g_person_vec_map->toString();
 #undef XX_PM
 }
+#endif
 
 // 加载文件后会触发配置变化 --> 出发事件 --> 变更配置
 void test_log() {
+    static azure::Logger::ptr system_log = AZURE_LOG_NAME("system");    // 刚开始不存在
+    AZURE_LOG_INFO(system_log) << "hello system";
+
+    std::cout << "before: " << azure::LoggerMgr::GetInstance()->toYamlString() << std::endl;
     YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_cfg.yml");
     azure::Config::LoadFromYaml(root);
+    std::cout << "===================================" << std::endl;
+    std::cout << "after: " << azure::LoggerMgr::GetInstance()->toYamlString() << std::endl;
+
+    AZURE_LOG_INFO(system_log) << "hello system";   // system_log这时加载进来了
 }
 
 int main(int argc, char **argv) {

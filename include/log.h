@@ -63,7 +63,7 @@ public:
     };
 
     static const char *ToString(LogLevel::Level level);
-    static LogLevel::Level FromString(const std::string str);
+    static LogLevel::Level FromString(const std::string &str);
 };
 
 // 日志事件
