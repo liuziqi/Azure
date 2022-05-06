@@ -10,6 +10,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic -O3 -g -std=c++11 -Wall -Wno-d
 
 # find_library(YAMLCPP yaml-cpp)
 
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
 set(LIB_SRC 
     src/log.cpp
     src/util.cpp

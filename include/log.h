@@ -16,6 +16,7 @@
 #include "util.h"
 #include "singleton.h"
 
+// construct后立即析构，立刻得到输出
 #define AZURE_LOG_LEVEL(logger, level) \
     if(logger->getLevel() <= level) \
         azure::LogEventWrap(azure::LogEvent::ptr(new azure::LogEvent(logger, level , \
@@ -118,6 +119,8 @@ public:
     // 将LogEvent格式化成字符串，提供给LogAppender
     std::string format(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event);
 
+    const std::string getPattern() const {return m_pattern;}
+
 public:
     class FormatItem {
         public:
@@ -151,6 +154,9 @@ public:
     void setLevel(LogLevel::Level level) {m_level = level;}
     LogLevel::Level getLevel() const {return m_level;}
 
+    // 将LogAppender的配置转成字符串
+    virtual std::string toYamlString() = 0;
+
 protected:
     LogLevel::Level m_level;
     LogFormatter::ptr m_formatter;
@@ -183,6 +189,9 @@ public:
     void setFormatter(const std::string &val);
     LogFormatter::ptr getFormatter();
 
+    // 将logger的配置转成字符串输出
+    std::string toYamlString();
+
 private:
     std::string m_name;                         // 日志名称
     LogLevel::Level m_level;                    // 日志级别
@@ -197,8 +206,8 @@ public:
     typedef std::shared_ptr<FileLogAppender> ptr;
     FileLogAppender(const std::string &filename);
     void log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override;
-
     bool reopen();  // 重新打开文件，打开成功返回true
+    std::string toYamlString() override;
 
 private:
     std::string m_filename;
@@ -211,6 +220,7 @@ public:
     typedef std::shared_ptr<StdoutLogAppender> ptr;
     StdoutLogAppender();
     void log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override;
+    std::string toYamlString() override;
 };
 
 class LoggerManager {
@@ -219,6 +229,8 @@ public:
     Logger::ptr getLogger(const std::string &name);
     Logger::ptr getRoot() const {return m_root;}
     void init();
+
+    std::string toYamlString();
 
 private:
     std::map<std::string, Logger::ptr> m_loggers;

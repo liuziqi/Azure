@@ -1,5 +1,5 @@
-#include "../src/config.h"
-#include "../src/log.h"
+#include "config.h"
+#include "log.h"
 #include <yaml-cpp/yaml.h>
 
 azure::ConfigVar<int>::ptr g_int_value_config = azure::Config::Lookup("system.port", (int)8080, "system port");

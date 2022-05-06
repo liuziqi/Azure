@@ -270,6 +270,21 @@ LogFormatter::ptr Logger::getFormatter() {
     return m_formatter;
 }
 
+std::string Logger::toYamlString() {
+    YAML::Node node;
+    node["name"] = m_name;
+    node["level"] = LogLevel::ToString(m_level);
+    if(m_formatter) {
+        node["formatter"] = m_formatter->getPattern();
+    }
+    for(auto &i : m_appenders) {
+        node["appenders"].push_back(YAML::Load(i->toYamlString()));
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
+}
+
 // void Logger::debug(LogEvent::ptr event) {
 //     log(LogLevel::DEBUG, event);
 // }
@@ -310,6 +325,19 @@ bool FileLogAppender::reopen() {
     return !!m_filestream;  // 转换成真正的bool值
 }
 
+std::string FileLogAppender::toYamlString() {
+    YAML::Node node;
+    node["type"] = "FileLogAppender";
+    node["file"] = m_filename;
+    node["level"] = LogLevel::ToString(m_level);
+    if(m_formatter) {
+        node["formatter"] = m_formatter->getPattern();
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
+}
+
 StdoutLogAppender::StdoutLogAppender()
     : LogAppender() {
 }
@@ -318,6 +346,19 @@ void StdoutLogAppender::log(Logger::ptr logger, LogLevel::Level level, LogEvent:
     if(level >= m_level) {
         std::cout << m_formatter->format(logger, level, event);
     }
+}
+
+// TODO 优化，这样实现有点傻逼
+std::string StdoutLogAppender::toYamlString() {
+    YAML::Node node;
+    node["type"] = "StdoutLogAppender";
+    node["level"] = LogLevel::ToString(m_level);
+    if(m_formatter) {
+        node["formatter"] = m_formatter->getPattern();
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
 }
 
 LogFormatter::LogFormatter(const std::string &pattern) 
@@ -470,6 +511,8 @@ void LogFormatter::init() {
 LoggerManager::LoggerManager() {
     m_root.reset(new Logger);
     m_root->addAppender(LogAppender::ptr(new StdoutLogAppender));
+    m_loggers[m_root->m_name] = m_root;
+    init();
 }
 
 Logger::ptr LoggerManager::getLogger(const std::string &name) {
@@ -647,6 +690,16 @@ struct LogIniter {
 };
 
 static LogIniter __log__init;
+
+std::string LoggerManager::toYamlString() {
+    YAML::Node node;
+    for(auto &i : m_loggers) {
+        node.push_back(YAML::Load(i.second->toYamlString()));
+    }
+    std::stringstream ss;
+    ss << node;
+    return ss.str();
+}
 
 void LoggerManager::init() {
 }
