@@ -15,7 +15,7 @@
 
 namespace azure {
 
-// 为了实现多态
+// 为了实现多态，比如我要在vector里同时保存ConfigVar<int>和ConfigVar<string>的指针
 class ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
@@ -34,7 +34,7 @@ public:
 
     virtual std::string toString() = 0;
     virtual bool fromString(const std::string &val) = 0;
-    virtual std::string getTypeName() = 0;
+    virtual std::string getTypeName() = 0;  // 获取子类模板参数类型名称
 
 protected:
     std::string m_name;

@@ -15,6 +15,8 @@
 #include <cstdarg>
 #include "util.h"
 #include "singleton.h"
+#include "log.h"
+#include "thread.h"
 
 // construct后立即析构，立刻得到输出
 #define AZURE_LOG_LEVEL(logger, level) \
@@ -145,6 +147,7 @@ friend class Logger;
 
 public:
     typedef std::shared_ptr<LogAppender> ptr;
+    typedef Mutex MutexType;
 
     LogAppender() {}    // 在子类构造函数不明确指出的情况下，子类自动执行父类的默认构造函数
     virtual ~LogAppender() {}
@@ -152,7 +155,7 @@ public:
     virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event) = 0;
 
     void setFormatter(LogFormatter::ptr val);
-    LogFormatter::ptr getFormatter() const {return m_formatter;}
+    LogFormatter::ptr getFormatter();
     void setLevel(LogLevel::Level level) {m_level = level;}
     LogLevel::Level getLevel() const {return m_level;}
 
@@ -162,8 +165,9 @@ public:
 protected:
     // 默认值自动继承
     bool m_hasFormatter = false;    // 标识appender是否有自己的formatter（root的不算）
-    LogLevel::Level m_level = LogLevel::DEBUG;
+    LogLevel::Level m_level = LogLevel::DEBUG;  // m_level不需要互斥访问，因为是基本类型，读写是原子操作（值可能不准）
     LogFormatter::ptr m_formatter;
+    MutexType m_mutex;                  // 互斥更改m_formatter，因为包含多个成员，读写不是原子操作
 };
 
 // 日志器
@@ -171,6 +175,7 @@ class Logger : public std::enable_shared_from_this<Logger> {
 friend class LoggerManager;
 public:
     typedef std::shared_ptr<Logger> ptr;
+    typedef Mutex MutexType;
 
     Logger(const std::string &name="root");
 
@@ -202,6 +207,7 @@ private:
     std::list<LogAppender::ptr> m_appenders;    // Appender集合
     LogFormatter::ptr m_formatter;        
     Logger::ptr m_root;                         // 等同于LoggerManager的m_root，用来指示root logger
+    MutexType m_mutex;                          // 用于互斥访问m_appenders
 };
 
 // 定义输出到文件的Appender
@@ -222,6 +228,7 @@ private:
 class StdoutLogAppender : public LogAppender {
 public:
     typedef std::shared_ptr<StdoutLogAppender> ptr;
+
     StdoutLogAppender();
     void log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override;
     std::string toYamlString() override;
@@ -229,6 +236,8 @@ public:
 
 class LoggerManager {
 public:
+    typedef Mutex MutexType;
+
     LoggerManager();
     Logger::ptr getLogger(const std::string &name);
     Logger::ptr getRoot() const {return m_root;}
@@ -237,6 +246,7 @@ public:
     std::string toYamlString();
 
 private:
+    MutexType m_mutex;
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;
 };

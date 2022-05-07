@@ -21,6 +21,7 @@ set(LIB_SRC
     src/log.cpp
     src/util.cpp
     src/config.cpp
+    src/thread.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -32,17 +33,29 @@ force_redefine_file_macro_for_sources(azure)
 # add_library(azure_static STATIC ${LIB_SRC})
 # SET_TARGET_PROPERTIES(azure_static PROPERTIES OUTPUT_NAME "azure")
 
+set(LIB_LIB
+    azure
+    pthread
+    yaml-cpp
+)
+
 # test_log
 add_executable(test_log tests/test_log.cpp)
-add_dependencies(test_log azure)        # test依赖于动态库azure，先生成azure再生成test
+add_dependencies(test_log azure)               # test依赖于动态库azure，先生成azure再生成test
 force_redefine_file_macro_for_sources(test_log)     # 修改__FILE__
-target_link_libraries(test_log azure yaml-cpp)   # 链接目标文件
+target_link_libraries(test_log ${LIB_LIB})      # 链接目标文件
 
 # test_config
 add_executable(test_config tests/test_config.cpp)
 add_dependencies(test_config azure)
 force_redefine_file_macro_for_sources(test_config)     # 修改__FILE__
-target_link_libraries(test_config azure yaml-cpp)
+target_link_libraries(test_config ${LIB_LIB})
+
+# test_thread
+add_executable(test_thread tests/test_thread.cpp)
+add_dependencies(test_thread azure)
+force_redefine_file_macro_for_sources(test_thread)     # 修改__FILE__
+target_link_libraries(test_thread ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
