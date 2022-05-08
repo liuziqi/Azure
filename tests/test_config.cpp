@@ -153,7 +153,7 @@ void test_class() {
     }
 
     // 触发配置变更事件
-    g_person->addListener(10, [](const Person &old_value, const Person &new_value) {
+    g_person->addListener([](const Person &old_value, const Person &new_value) {
         AZURE_LOG_INFO(AZURE_LOG_ROOT()) <<"old_value=" << old_value.toString() << " new_value=" << new_value.toString();
     });
 
@@ -198,5 +198,14 @@ int main(int argc, char **argv) {
     // test_config();
     // test_class();
     test_log();
+
+    // 测试 azure::Config::Visit 方法
+    azure::Config::Visit([](azure::ConfigVarBase::ptr var) {
+        AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "name=" << var->getName() 
+                                << " description=" << var->getDescription()
+                                << " typename=" << var->getTypeName()
+                                << " value=" << var->toString();
+    });
+
     return 0;
 }

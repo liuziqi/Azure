@@ -12,6 +12,7 @@
 #include <yaml-cpp/yaml.h>
 #include <functional>
 #include "log.h"
+#include "thread.h"
 
 namespace azure {
 
@@ -240,6 +241,7 @@ public:
 template<typename T, typename FromStr=LexicalCast<std::string, T>, typename ToStr=LexicalCast<T, std::string>>
 class ConfigVar : public ConfigVarBase {
 public:
+    typedef RWMutex RWMutexType;
     typedef std::shared_ptr<ConfigVar> ptr;
     // on_change_cb是返回类型为void，参数类型为两个T的函数类型
     typedef std::function<void (const T &old_value, const T &new_value)> on_change_cb;
@@ -252,6 +254,7 @@ public:
     std::string toString() override {
         try {
             // return boost::lexical_cast<std::string>(m_val);
+            RWMutexType::ReadLock lock(m_mutex);
             return ToStr()(m_val);
         }
         catch(std::exception &e) {
@@ -264,7 +267,7 @@ public:
     bool fromString(const std::string &val) override {
         try {
             // m_val = boost::lexical_cast<T>(val);
-            setValue(FromStr()(val));
+            setValue(FromStr()(val));   // 加过锁了
         }
         catch(std::exception &e) {
             AZURE_LOG_ERROR(AZURE_LOG_ROOT()) << "ConfigVar::toString exception " << e.what() 
@@ -273,41 +276,57 @@ public:
         return false;
     }
 
-    const T getValue() const {return m_val;}
+    const T getValue() {
+        RWMutexType::ReadLock lock(m_mutex);
+        return m_val;
+    }
 
     void setValue(const T &v) {
-        if(v == m_val) {
-            return;
+        {
+            RWMutexType::ReadLock lock(m_mutex);
+            if(v == m_val) {
+                return;
+            }
         }
         // 值发生了变化
         for(auto &i : m_cbs) {
             // 这里就相当于回调执行了若干个函数，每个函数的参数都是这俩
             i.second(m_val, v);
         }
+
+        RWMutexType::WriteLock lock(m_mutex);
         m_val = v;
     }
 
     std::string getTypeName() override {return typeid(T).name();}
 
     // 以下函数与配置变更事件相关
-    void addListener(uint64_t key, on_change_cb cb) {
-        m_cbs[key] = cb;
+    uint64_t addListener(on_change_cb cb) {
+        static uint64_t s_fun_id = 0;
+        RWMutex::WriteLock lock(m_mutex);    // 写操作
+        ++s_fun_id;
+        m_cbs[s_fun_id] = cb;
+        return s_fun_id;
     }
 
     void delListener(uint64_t key) {
+        RWMutex::WriteLock lock(m_mutex);    // 写操作
         m_cbs.erase(key);
     }
 
     on_change_cb getListener(uint64_t key) {
+        RWMutex::ReadLock lock(m_mutex);    // 读操作
         auto it = m_cbs.find(key);
         return it == m_cbs.end() ? nullptr : it->second;
     }
 
     void clearListener() {
+        RWMutex::WriteLock lock(m_mutex);    // 写操作
         m_cbs.clear();
     }
 
 private:
+    RWMutex m_mutex;
     T m_val;
 
     // NOTE 怎样实现配置变更通知
@@ -319,9 +338,11 @@ private:
 class Config {
 public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
+    typedef RWMutex RWMutexType;
 
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name, const T &default_value, const std::string &description="") {
+        RWMutexType::WriteLock lock(GetMutex());
         auto it = GetData().find(name);
         if(it != GetData().end()) {
             auto tmp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);     // 失败返回nullptr
@@ -349,6 +370,7 @@ public:
     // 返回派生类指针类型
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string &name) {
+        RWMutexType::ReadLock lock(GetMutex());
         auto it = GetData().find(name);
         if(it == GetData().end()) {
             return nullptr;
@@ -358,14 +380,19 @@ public:
 
     // 返回的是基类指针类型
     static ConfigVarBase::ptr LookupBase(const std::string name);   // 不能返回抽象类对象
-
     static void LoadFromYaml(const YAML::Node &root);
+    static void Visit(std::function<void(ConfigVarBase::ptr)> cb);  // 提供访问m_data的方法
 
 private:
     // NOTE 使用函数的方式获取静态变量，防止其他静态函数使用该静态变量时，因为静态变量的初始化无序性导致访问出错
     static ConfigVarMap &GetData() {
         static ConfigVarMap s_data;
         return s_data;
+    }
+    // 防止静态变量的初始化无序性导致访问出错
+    static RWMutexType &GetMutex() {
+        static RWMutexType s_mutex;
+        return s_mutex;
     }
 };
 

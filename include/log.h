@@ -147,7 +147,7 @@ friend class Logger;
 
 public:
     typedef std::shared_ptr<LogAppender> ptr;
-    typedef Mutex MutexType;
+    typedef Spinlock MutexType;
 
     LogAppender() {}    // 在子类构造函数不明确指出的情况下，子类自动执行父类的默认构造函数
     virtual ~LogAppender() {}
@@ -175,7 +175,7 @@ class Logger : public std::enable_shared_from_this<Logger> {
 friend class LoggerManager;
 public:
     typedef std::shared_ptr<Logger> ptr;
-    typedef Mutex MutexType;
+    typedef Spinlock MutexType;
 
     Logger(const std::string &name="root");
 
@@ -236,7 +236,7 @@ public:
 
 class LoggerManager {
 public:
-    typedef Mutex MutexType;
+    typedef Spinlock MutexType;
 
     LoggerManager();
     Logger::ptr getLogger(const std::string &name);

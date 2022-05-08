@@ -36,7 +36,7 @@ void func3() {
 int main(int argc, char **argv) {
     AZURE_LOG_INFO(g_logger) << "thread test begin";
 
-    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_cfg.yml");
+    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_root_cfg.yml");
     azure::Config::LoadFromYaml(root);
 
     std::vector<azure::Thread::ptr> thrs;

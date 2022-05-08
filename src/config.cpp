@@ -3,6 +3,7 @@
 namespace azure {
 
 ConfigVarBase::ptr Config::LookupBase(const std::string name) {
+    RWMutexType::ReadLock lock(GetMutex());
     auto it = GetData().find(name);
     return it == GetData().end() ? nullptr : it->second;
 }
@@ -17,7 +18,10 @@ static void ListAllMember(const std::string &prefix, const YAML::Node &node, std
     if(prefix.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789") != std::string::npos) {
         AZURE_LOG_ERROR(AZURE_LOG_ROOT()) << "Config invalid name: " << prefix << " : " << node;
     }
-    output.push_back(std::make_pair(prefix, node));     // 把节点的全称和节点对象保存下来
+    if(!prefix.empty()) {
+        output.push_back(std::make_pair(prefix, node));     // 把节点的全称和节点对象保存下来
+    }
+    // output.push_back(std::make_pair(prefix, node));
     if(node.IsMap()) {
         for(auto it = node.begin(); it != node.end(); ++it) {
             ListAllMember(prefix.empty() ? it->first.Scalar() : prefix + "." + it->first.Scalar(), it->second, output);
@@ -48,6 +52,14 @@ void Config::LoadFromYaml(const YAML::Node &root) {
                 var->fromString(ss.str());
             }
         }
+    }
+}
+
+void Config::Visit(std::function<void(ConfigVarBase::ptr)> cb) {
+    RWMutexType::ReadLock lock(GetMutex());
+    ConfigVarMap &data = GetData();
+    for(auto it = data.begin(); it != data.end(); ++it) {
+        cb(it->second);
     }
 }
 

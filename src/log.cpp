@@ -10,7 +10,7 @@ const char *LogLevel::ToString(LogLevel::Level level) {
     case LogLevel::name: \
         return #name; \
         break;
-    
+
     XX(DEBUG)
     XX(INFO)
     XX(WARN)
@@ -342,19 +342,21 @@ LogFormatter::ptr LogAppender::getFormatter() {
 FileLogAppender::FileLogAppender(const std::string &filename) 
     : LogAppender()
     , m_filename(filename) {
-    reopen();
+    // reopen(); 
 }
 
 void FileLogAppender::log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) {
     if(level >= m_level) {
         // 应该互斥访问 m_filestream
         MutexType::Lock lock(m_mutex);
+        // TODO 每次写日志都打开一次文件，防止文件被误删，这么写有点蠢
+        reopen();
         m_filestream << m_formatter->format(logger, level, event);
     }
 }
 
 bool FileLogAppender::reopen() {
-    MutexType::Lock lock(m_mutex);
+    // MutexType::Lock lock(m_mutex);
     if(m_filestream) {
         m_filestream.close();
     }
@@ -691,7 +693,7 @@ azure::ConfigVar<std::set<LogDefine>>::ptr g_log_defines = azure::Config::Lookup
 // NOTE 静态变量在main函数之前执行，这里的构造函数可以执行一些需要main之前进行的操作
 struct LogIniter {
     LogIniter() {
-        g_log_defines->addListener(0xF1E231, [](const std::set<LogDefine> &old_value, const std::set<LogDefine> &new_value) {
+        g_log_defines->addListener([](const std::set<LogDefine> &old_value, const std::set<LogDefine> &new_value) {
 
             AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "on_logger_conf_changed";
 
