@@ -19,6 +19,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 set(LIB_SRC 
     src/log.cpp
+    src/fiber.cpp
     src/util.cpp
     src/config.cpp
     src/thread.cpp
@@ -56,6 +57,18 @@ add_executable(test_thread tests/test_thread.cpp)
 add_dependencies(test_thread azure)
 force_redefine_file_macro_for_sources(test_thread)     # 修改__FILE__
 target_link_libraries(test_thread ${LIB_LIB})
+
+# test_util
+add_executable(test_util tests/test_util.cpp)
+add_dependencies(test_util azure)
+force_redefine_file_macro_for_sources(test_util)     # 修改__FILE__
+target_link_libraries(test_util ${LIB_LIB})
+
+# test_fiber
+add_executable(test_fiber tests/test_fiber.cpp)
+add_dependencies(test_fiber azure)
+force_redefine_file_macro_for_sources(test_fiber)     # 修改__FILE__
+target_link_libraries(test_fiber ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

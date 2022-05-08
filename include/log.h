@@ -23,7 +23,7 @@
     if(logger->getLevel() <= level) \
         azure::LogEventWrap(azure::LogEvent::ptr(new azure::LogEvent(logger, level , \
                                                 __FILE__, __LINE__, 0, azure::GetThreadId(), \
-                                                azure::GetFiberId(), time(0)))).getSs()
+                                                azure::GetFiberId(), time(0), azure::Thread::GetName()))).getSs()
 
 #define AZURE_LOG_DEBUG(logger) AZURE_LOG_LEVEL(logger, azure::LogLevel::DEBUG)
 #define AZURE_LOG_INFO(logger) AZURE_LOG_LEVEL(logger, azure::LogLevel::INFO)
@@ -35,7 +35,7 @@
     if(logger->getLevel() <= level) \
         azure::LogEventWrap(azure::LogEvent::ptr(new azure::LogEvent(logger, level, \
                                                 __FILE__, __LINE__, 0, azure::GetThreadId(), \
-                                                azure::GetFiberId(), time(0)))). \
+                                                azure::GetFiberId(), time(0), azure::Thread::GetName()))). \
                                                 getEvent()->format(fmt, __VA_ARGS__)
 
 #define AZURE_LOG_FMT_DEBUG(logger, fmt, ...) AZURE_LOG_FMT_LEVEL(logger, azure::LogLevel::DEBUG, fmt, __VA_ARGS__)
@@ -72,20 +72,22 @@ public:
 class LogEvent {
 public:
     typedef std::shared_ptr<LogEvent> ptr;
-    LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char *file, int32_t line, uint32_t elapse, uint32_t threadId, uint32_t fiberId, uint64_t time);
+    LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char *file, int32_t line, uint32_t elapse, 
+                uint32_t threadId, uint32_t fiberId, uint64_t time, const std::string &thread_name);
     ~LogEvent() {};
 
     const char *getFile() const {return m_file;}
     int32_t getLine() const {return m_line;}
     uint32_t getElapse() const {return m_elapse;}
     uint32_t getThreadId() const {return m_threadId;}
+    std::string getThreadName() const {return m_threadName;}
     uint32_t getFiberId() const {return m_fiberId;}
     uint64_t getTime() const {return m_time;}
     std::string getContent() const {return m_ss.str();}
     std::shared_ptr<Logger> getLogger() const {return m_logger;}
     LogLevel::Level getLevel() const {return m_level;}
-
     std::stringstream &getSs() {return m_ss;}
+
     void format(const char *fmt, ...);
     void format(const char *fmt, va_list al);
 
@@ -96,6 +98,7 @@ private:
     int32_t m_line = 0;                 // 行号
     uint32_t m_elapse = 0;              // 程序启动开始到现在的毫秒数
     uint32_t m_threadId = 0;            // 线程ID
+    std::string m_threadName;           // 线程名称
     uint32_t m_fiberId = 0;             // 协程ID
     uint64_t m_time;                    // 时间戳
     std::stringstream m_ss;             // 日志流
