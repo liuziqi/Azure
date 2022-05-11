@@ -44,32 +44,32 @@ set(LIB_LIB
 
 # test_log
 add_executable(test_log tests/test_log.cpp)
-add_dependencies(test_log azure)               # test依赖于动态库azure，先生成azure再生成test
-force_redefine_file_macro_for_sources(test_log)     # 修改__FILE__
-target_link_libraries(test_log ${LIB_LIB})      # 链接目标文件
+add_dependencies(test_log azure)                        # test依赖于动态库azure，先生成azure再生成test
+force_redefine_file_macro_for_sources(test_log)         # 修改__FILE__
+target_link_libraries(test_log ${LIB_LIB})              # 链接目标文件
 
 # test_config
 add_executable(test_config tests/test_config.cpp)
 add_dependencies(test_config azure)
-force_redefine_file_macro_for_sources(test_config)     # 修改__FILE__
+force_redefine_file_macro_for_sources(test_config)      # 修改__FILE__
 target_link_libraries(test_config ${LIB_LIB})
 
 # test_thread
 add_executable(test_thread tests/test_thread.cpp)
 add_dependencies(test_thread azure)
-force_redefine_file_macro_for_sources(test_thread)     # 修改__FILE__
+force_redefine_file_macro_for_sources(test_thread)      # 修改__FILE__
 target_link_libraries(test_thread ${LIB_LIB})
 
 # test_util
 add_executable(test_util tests/test_util.cpp)
 add_dependencies(test_util azure)
-force_redefine_file_macro_for_sources(test_util)     # 修改__FILE__
+force_redefine_file_macro_for_sources(test_util)        # 修改__FILE__
 target_link_libraries(test_util ${LIB_LIB})
 
 # test_fiber
 add_executable(test_fiber tests/test_fiber.cpp)
 add_dependencies(test_fiber azure)
-force_redefine_file_macro_for_sources(test_fiber)     # 修改__FILE__
+force_redefine_file_macro_for_sources(test_fiber)       # 修改__FILE__
 target_link_libraries(test_fiber ${LIB_LIB})
 
 # test_scheduler

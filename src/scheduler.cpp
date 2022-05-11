@@ -9,11 +9,12 @@ static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 static thread_local Scheduler *t_scheduler = nullptr;       // 当前使用中的协程调度器（一般只存在一个协程调度器）
 static thread_local Fiber *t_scheduler_fiber = nullptr;     // 调度协程，每个线程的主协程会被设置为调度线程，用于协程切换
 
-Scheduler::Scheduler(size_t thread_num, bool use_caller, const std::string &name) {
+Scheduler::Scheduler(size_t thread_num, bool use_caller, const std::string &name) 
+    : m_name(name) {
     AZURE_ASSERT(thread_num > 0);
 
     if(use_caller) {
-        azure::Fiber::GetThis();    // 线程没有协程的话就会初始化一个主协程（主协程只用来切换协程）
+        azure::Fiber::GetThis();                // 线程没有协程的话就会初始化一个主协程（主协程只用来切换协程）
         --thread_num;
 
         AZURE_ASSERT(GetThis() == nullptr);     // 构造Scheduler时必须保证不存在已构造的协程调度器
@@ -65,12 +66,6 @@ void Scheduler::start() {
         m_threads[i].reset(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i)));
         m_threadIds.push_back(m_threads[i]->getId());
     }
-    lock.unlock();
-
-    if(m_rootFiber) {
-        m_rootFiber->call();  // 已经给m_rootFiber设置了run方法，swapin后开始执行run
-        AZURE_LOG_INFO(g_logger) << "call out " << m_rootFiber->getState();
-    }
 }
 
 void Scheduler::stop() {
@@ -97,25 +92,46 @@ void Scheduler::stop() {
         tickle();
     }
 
-    if(stopping()) {
-        return;
+    if(m_rootFiber) {
+        tickle();
     }
 
-    // if(exit_on_this_fiber) {
+    if(m_rootFiber) {
+        // while(!stopping()) {
+        //     if(m_rootFiber->getState() == Fiber::TERM || m_rootFiber->getState() == Fiber::EXCEPT) {
+        //         m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this), 0, true));
+        //         AZURE_LOG_INFO(g_logger) << " root fiber is term reset";
+        //         t_scheduler_fiber = m_rootFiber.get();
+        //     }
+        //     m_rootFiber->call();
+        // }
+        if(!stopping()) {
+            m_rootFiber->call();
+        }
+    }
 
-    // }
+    std::vector<Thread::ptr> thrs;
+    {
+        MutexType::Lock lock(m_mutex);
+        thrs.swap(m_threads);
+    }
+
+    for(auto &i : thrs) {
+        i->join();
+    }
 }
 
 void Scheduler::setThis() {
     t_scheduler = this;
 }
 
+// 由线程执行的函数
 void Scheduler::run() {
-    AZURE_LOG_INFO(g_logger) << "run";
+    AZURE_LOG_INFO(g_logger) << m_name << " run";
 
     setThis();  // 设置当前Scheduler
-    if(azure::GetThreadId() != m_rootThreadId) {
-        t_scheduler_fiber = Fiber::GetThis().get();     // 初始化线程主协程，赋值给当前调度线程
+    if(azure::GetThreadId() != m_rootThreadId) {    // 如果不是主线程，初始化主协程，赋值给当前调度协程
+        t_scheduler_fiber = Fiber::GetThis().get(); 
     }
     
     Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));    // 所有协程任务都完成就运行idle_fiber
@@ -125,6 +141,7 @@ void Scheduler::run() {
     while(true) {
         ft.reset();
         bool tickle_me = false;
+        bool is_active = false;
         // 从协程队列里取出一个要执行的协程
         {
             MutexType::Lock lock(m_mutex);
@@ -144,7 +161,9 @@ void Scheduler::run() {
                 }
 
                 ft = *it;
-                m_fibers.erase(it);
+                m_fibers.erase(it++);
+                ++m_activeThreadCount;
+                is_active = true;
                 break;
             }
         }
@@ -154,12 +173,11 @@ void Scheduler::run() {
         }
 
         if(ft.fiber && ft.fiber->getState() != Fiber::TERM && ft.fiber->getState() != Fiber::EXCEPT) {
-            ++m_activeThreadCount;
             ft.fiber->swapIn();
             --m_activeThreadCount;  // 已经从协程里返回了
 
             if(ft.fiber->getState() == Fiber::READY) {  // 如果执行了YieldToReady，再次入队等待调度
-                schedule(ft.fiber);     // 
+                schedule(ft.fiber); // DEBUG 可以指定运行该协程的线程
             }
             else if(ft.fiber->getState() != Fiber::TERM && ft.fiber->getState() != Fiber::EXCEPT) {     // 让出了执行时间
                 ft.fiber->m_state = Fiber::HOLD;    // DEBUG 不用入队吗？
@@ -173,16 +191,16 @@ void Scheduler::run() {
             else {
                 cb_fiber.reset(new Fiber(ft.cb));   // 智能指针reset
             }
-            ++m_activeThreadCount;
             ft.reset();
-            --m_activeThreadCount;
             cb_fiber->swapIn();
+            --m_activeThreadCount;
             if(cb_fiber->getState() == Fiber::READY) {
-                schedule(cb_fiber);                 // YieldToReady 在入队
+                schedule(cb_fiber);                 // YieldToReady 再入队
                 cb_fiber.reset();
             }
             else if(cb_fiber->getState() == Fiber::EXCEPT || cb_fiber->getState() == Fiber::TERM) {
-                cb_fiber->reset(nullptr);           // callback reset
+                // cb_fiber->reset(nullptr);           // callback reset
+                cb_fiber.reset();
             }
             else {
                 cb_fiber->m_state = Fiber::HOLD;
@@ -190,10 +208,12 @@ void Scheduler::run() {
             }
         }
         else {
+            if(is_active) {
+                --m_activeThreadCount;
+            }
             if(idle_fiber->getState() == Fiber::TERM) {
                 AZURE_LOG_INFO(g_logger) << "idle fiber term";
                 break;
-                // continue;
             }
 
             ++m_idleThreadCount;
@@ -203,8 +223,6 @@ void Scheduler::run() {
             if(idle_fiber->getState() != Fiber::TERM && idle_fiber->getState() != Fiber::EXCEPT) {
                 idle_fiber->m_state = Fiber::HOLD;
             }
-
-            --m_idleThreadCount;
         }
     }
 }
@@ -220,6 +238,9 @@ bool Scheduler::stopping() {
 
 void Scheduler::idle() {
     AZURE_LOG_INFO(g_logger) << "idle";
+    while(!stopping()) {
+        azure::Fiber::YieldToHold();
+    }
 }   
 
 }

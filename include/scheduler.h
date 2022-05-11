@@ -130,7 +130,7 @@ protected:
     size_t m_threadCount = 0;                       // 线程数量
     std::atomic<size_t> m_activeThreadCount = {0};  // 工作线程数量
     std::atomic<size_t> m_idleThreadCount = {0};    // 空闲线程数量
-    bool m_stopping = true;                         // 是否正在停止
+    bool m_stopping = true;                         // 是否停止
     bool m_autostop = false;                        // 是否自动停止
     int m_rootThreadId = 0;                         // 主线程id（user_caller）
 };
