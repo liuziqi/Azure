@@ -9,12 +9,20 @@ static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 static thread_local Scheduler *t_scheduler = nullptr;       // 当前使用中的协程调度器（一般只存在一个协程调度器）
 static thread_local Fiber *t_scheduler_fiber = nullptr;     // 调度协程，每个线程的主协程会被设置为调度线程，用于协程切换
 
+// 这里的 use_caller 就是说把 Scheduler 即主线程也当作工作线程之一
+// 主线程作为工作线程，与其他工作线程的区别在于，主线程的 root 协程负责调度，
+// 而工作线程则由线程本身负责调度，这一点从对 run 方法的调用看出
+// 主线程当作工作线程的好处是性能可以发挥到极致，协程切换顺序是：
+// idle --> t_scheduler_fiber(m_rootFiber) --> idle 或者 
+// t_threadFiber --> t_scheduler_fiber(m_rootFiber) --> idle --> t_scheduler_fiber(m_rootFiber) （在没有工作线程的情况下）
+// 如果不把主线程当作工作线程，那么主线程负责 start，schedule，stop，工作线程负责负责调度，协程切换顺序是：
+// t_threadFiber（MainFunc为空，执行线程逻辑）--> idle --> t_threadFiber --> idle
 Scheduler::Scheduler(size_t thread_num, bool use_caller, const std::string &name) 
     : m_name(name) {
     AZURE_ASSERT(thread_num > 0);
 
     if(use_caller) {
-        azure::Fiber::GetThis();                // 线程没有协程的话就会初始化一个主协程（主协程只用来切换协程）
+        azure::Fiber::GetThis();                // 线程没有协程的话就会初始化一个主协程，用于call方法
         --thread_num;
 
         AZURE_ASSERT(GetThis() == nullptr);     // 构造Scheduler时必须保证不存在已构造的协程调度器
@@ -89,22 +97,14 @@ void Scheduler::stop() {
 
     m_stopping = true;
     for(size_t i = 0; i < m_threadCount; ++i) {
-        tickle();
+        // tickle();
     }
 
     if(m_rootFiber) {
-        tickle();
+        // tickle();
     }
 
     if(m_rootFiber) {
-        // while(!stopping()) {
-        //     if(m_rootFiber->getState() == Fiber::TERM || m_rootFiber->getState() == Fiber::EXCEPT) {
-        //         m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this), 0, true));
-        //         AZURE_LOG_INFO(g_logger) << " root fiber is term reset";
-        //         t_scheduler_fiber = m_rootFiber.get();
-        //     }
-        //     m_rootFiber->call();
-        // }
         if(!stopping()) {
             m_rootFiber->call();
         }
@@ -130,14 +130,23 @@ void Scheduler::run() {
     AZURE_LOG_INFO(g_logger) << m_name << " run";
 
     setThis();  // 设置当前Scheduler
-    if(azure::GetThreadId() != m_rootThreadId) {    // 如果不是主线程，初始化主协程，赋值给当前调度协程
-        t_scheduler_fiber = Fiber::GetThis().get(); 
+    
+    // 如果不是主线程，初始化主协程，赋值给当前调度协程
+    // 有点蠢，按现在（p35）的写法只需要初始化一次t_scheduler_fiber就够了，切换时用到的协程
+    // if(azure::GetThreadId() != m_rootThreadId) {
+    //     t_scheduler_fiber = Fiber::GetThis().get(); 
+    // }
+
+    // 只初始化一次
+    if(!t_scheduler_fiber) {
+        t_scheduler_fiber = Fiber::GetThis().get();
     }
     
     Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));    // 所有协程任务都完成就运行idle_fiber
     Fiber::ptr cb_fiber;    // 如果取得的是callback，就用这个协程执行
 
     FiberAndThread ft;
+
     while(true) {
         ft.reset();
         bool tickle_me = false;
@@ -182,7 +191,7 @@ void Scheduler::run() {
             else if(ft.fiber->getState() != Fiber::TERM && ft.fiber->getState() != Fiber::EXCEPT) {     // 让出了执行时间
                 ft.fiber->m_state = Fiber::HOLD;    // DEBUG 不用入队吗？
             }
-            ft.reset();     // 智能指针reset
+            ft.reset();             // 析构Fiber
         }
         else if(ft.cb) {
             if(cb_fiber) {
@@ -213,7 +222,7 @@ void Scheduler::run() {
             }
             if(idle_fiber->getState() == Fiber::TERM) {
                 AZURE_LOG_INFO(g_logger) << "idle fiber term";
-                break;
+                break;  // 空闲协程执行完就结束线程
             }
 
             ++m_idleThreadCount;
@@ -238,6 +247,10 @@ bool Scheduler::stopping() {
 
 void Scheduler::idle() {
     AZURE_LOG_INFO(g_logger) << "idle";
+    // 一般情况下，调用了stop方法才退出 while 循环
+    // idle协程 --> GetMainFiber协程：继续执行while循环，直到 idle_fiber->swapIn()
+    // idle_fiber->swapIn()：返回到上一步
+    // GetMainFiber协程不包含执行函数，会直接返回到线程逻辑里
     while(!stopping()) {
         azure::Fiber::YieldToHold();
     }

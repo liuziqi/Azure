@@ -8,16 +8,18 @@ void test_fiber() {
     sleep(1);
     if(--s_count >= 0) {
         // azure::Scheduler::GetThis()->schedule(&test_fiber, azure::GetThreadId());
-        azure::Scheduler::GetThis()->schedule(&test_fiber, azure::GetThreadId());
+        azure::Scheduler::GetThis()->schedule(&test_fiber);
     }
 }
 
 int main(int argc, char **argv) {
+    azure::Thread::SetName("mainth");
     AZURE_LOG_INFO(g_logger) << "main";
-    azure::Scheduler sc(3, false, "test");
+    azure::Scheduler sc(1, true, "test");
     // sc.schedule(&tese_fiber);
     sc.start();
     AZURE_LOG_INFO(g_logger) << "schedule";
+    sleep(2);
     sc.schedule(&test_fiber);
     sc.stop();
     AZURE_LOG_INFO(g_logger) << "stop";

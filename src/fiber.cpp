@@ -40,7 +40,7 @@ Fiber::Fiber() {
     SetThis(this);
 
     // 初始化ucp结构体，将当前的上下文保存到m_ctx中
-    // 主协程没有MainFunc，不干任何事
+    // 主协程没有MainFunc，不干任何事，就会返回主函数
     if(getcontext(&m_ctx)) {    
         AZURE_ASSERT2(false, "getcontext");
     }
@@ -123,6 +123,7 @@ void Fiber::swapIn() {
 
 // 把主协程切换进来
 void Fiber::swapOut() {
+    // AZURE_LOG_INFO(g_logger) << "fiber swapout, out: " << m_id << ", in:" << Scheduler::GetMainFiber()->m_id;
     SetThis(Scheduler::GetMainFiber());
     if(swapcontext(&m_ctx, &(Scheduler::GetMainFiber()->m_ctx))) {
         AZURE_ASSERT2(false, "swapcontext");
