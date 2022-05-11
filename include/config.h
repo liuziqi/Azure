@@ -13,6 +13,7 @@
 #include <functional>
 #include "log.h"
 #include "thread.h"
+#include "mutex.h"
 
 namespace azure {
 
@@ -270,7 +271,7 @@ public:
             setValue(FromStr()(val));   // 加过锁了
         }
         catch(std::exception &e) {
-            AZURE_LOG_ERROR(AZURE_LOG_ROOT()) << "ConfigVar::toString exception " << e.what() 
+            AZURE_LOG_ERROR(AZURE_LOG_ROOT()) << "ConfigVar::fromString exception " << e.what() 
                 << " convert: string to " << typeid(m_val).name();
         }
         return false;

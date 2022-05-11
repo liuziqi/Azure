@@ -175,7 +175,7 @@ void test_class() {
 }
 #endif
 
-// 加载文件后会触发配置变化 --> 出发事件 --> 变更配置
+// 加载文件后会触发配置变化 --> 触发事件 --> 变更配置
 void test_log() {
     static azure::Logger::ptr system_log = AZURE_LOG_NAME("system");    // 刚开始不存在
     AZURE_LOG_INFO(system_log) << "hello system";
@@ -197,15 +197,18 @@ int main(int argc, char **argv) {
     // test_yaml();
     // test_config();
     // test_class();
-    test_log();
+    // test_log();
 
     // 测试 azure::Config::Visit 方法
-    azure::Config::Visit([](azure::ConfigVarBase::ptr var) {
-        AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "name=" << var->getName() 
-                                << " description=" << var->getDescription()
-                                << " typename=" << var->getTypeName()
-                                << " value=" << var->toString();
-    });
+    // azure::Config::Visit([](azure::ConfigVarBase::ptr var) {
+    //     AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "name=" << var->getName() 
+    //                             << " description=" << var->getDescription()
+    //                             << " typename=" << var->getTypeName()
+    //                             << " value=" << var->toString();
+    // });
+
+    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_cfg.yml");
+    azure::Config::LoadFromYaml(root);
 
     return 0;
 }

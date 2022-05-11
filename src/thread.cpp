@@ -15,28 +15,6 @@ static thread_local std::string t_thread_name = "UNKNOWN";
 
 static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 
-Semaphore::Semaphore(uint32_t count) {
-    if(sem_init(&m_semaphore, 0, count)) {
-        throw std::logic_error("sem_init error");
-    }
-}
-
-Semaphore::~Semaphore() {
-    sem_destroy(&m_semaphore);
-}
-
-void Semaphore::wait() {
-    if(sem_wait(&m_semaphore)) {   // sem_wait 成功返回 0，
-        throw std::logic_error("sem_wait error");
-    }
-}
-
-void Semaphore::notify() {
-    if(sem_post(&m_semaphore)) {
-        throw std::logic_error("sem_post error");
-    }
-}
-
 Thread *Thread::GetThis() {
     return t_thread;
 }
@@ -68,7 +46,7 @@ Thread::Thread(std::function<void()> cb, const std::string &name)
     }
 
     // 可能在构造函数返回的时候线程还没有开始执行
-    // m_semaphore.wait();
+    m_semaphore.wait();
 }
 
 Thread::~Thread() {
@@ -105,7 +83,7 @@ void *Thread::run(void *arg) {
     cb.swap(thread->m_cb);
 
     // 保证构造函数退出的时候线程已经运行起来了
-    // t_thread->m_semaphore.notify();
+    t_thread->m_semaphore.notify();
 
     cb();   // 线程真正执行的函数
     return 0;

@@ -10,7 +10,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_BUILD_TYPE Debug)
 
 # -Wno-忽略警告
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic -O3 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function \
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic -O0 -g -std=c++11 -Wall -Wno-deprecated -Werror -Wno-unused-function \
                         -Wno-builtin-macro-redefined")
 
 # find_library(YAMLCPP yaml-cpp)
@@ -23,6 +23,8 @@ set(LIB_SRC
     src/util.cpp
     src/config.cpp
     src/thread.cpp
+    src/mutex.cpp
+    src/scheduler.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -69,6 +71,12 @@ add_executable(test_fiber tests/test_fiber.cpp)
 add_dependencies(test_fiber azure)
 force_redefine_file_macro_for_sources(test_fiber)     # 修改__FILE__
 target_link_libraries(test_fiber ${LIB_LIB})
+
+# test_scheduler
+add_executable(test_scheduler tests/test_scheduler.cpp)
+add_dependencies(test_scheduler azure)
+force_redefine_file_macro_for_sources(test_scheduler)     # 修改__FILE__
+target_link_libraries(test_scheduler ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

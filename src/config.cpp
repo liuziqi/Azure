@@ -15,6 +15,7 @@ ConfigVarBase::ptr Config::LookupBase(const std::string name) {
 // prefix用来表示节点全称，如 A.B, A.C
 // node是节点对象，pair类型，fisrt是名称，second是值 
 static void ListAllMember(const std::string &prefix, const YAML::Node &node, std::list<std::pair<std::string, const YAML::Node>> &output) {
+    // DEBUG yml如果key包含大写会出错
     if(prefix.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789") != std::string::npos) {
         AZURE_LOG_ERROR(AZURE_LOG_ROOT()) << "Config invalid name: " << prefix << " : " << node;
     }

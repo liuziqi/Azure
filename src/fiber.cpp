@@ -2,6 +2,7 @@
 #include "config.h"
 #include "macro.h"
 #include "fiber.h"
+#include "scheduler.h"
 
 namespace azure {
 
@@ -38,14 +39,17 @@ Fiber::Fiber() {
     m_state = EXEC;
     SetThis(this);
 
-    if(getcontext(&m_ctx)) {
+    // 初始化ucp结构体，将当前的上下文保存到m_ctx中
+    // 主协程没有MainFunc，不干任何事
+    if(getcontext(&m_ctx)) {    
         AZURE_ASSERT2(false, "getcontext");
     }
-
     ++s_fiber_count;
+
+    AZURE_LOG_DEBUG(g_logger) << "Fiber::Fiber id=" << m_id;
 }
 
-Fiber::Fiber(std::function<void()> cb, size_t stacksize)
+Fiber::Fiber(std::function<void()> cb, size_t stacksize, bool use_caller)
     : m_id(++s_fiber_id)
     , m_cb(cb) {
     ++s_fiber_count;
@@ -55,12 +59,20 @@ Fiber::Fiber(std::function<void()> cb, size_t stacksize)
     if(getcontext(&m_ctx)) {
         AZURE_ASSERT2(false, "getcontext");
     }
-    m_ctx.uc_link = nullptr;
-    m_ctx.uc_stack.ss_sp = m_stack;
-    m_ctx.uc_stack.ss_size = m_stacksize;
+    m_ctx.uc_link = nullptr;                // 后继上下文
+    m_ctx.uc_stack.ss_sp = m_stack;         // 栈空间基址
+    m_ctx.uc_stack.ss_size = m_stacksize;   // 栈大小
 
-    makecontext(&m_ctx, &Fiber::MainFunc, 0);
+    if(!use_caller) {
+        // 修改通过getcontext取得的上下文m_ctx
+        makecontext(&m_ctx, &Fiber::MainFunc, 0);
+    }
+    else {
+        makecontext(&m_ctx, &Fiber::CallerMainFunc, 0);
+    }
+    
     // m_state = INIT;
+    AZURE_LOG_DEBUG(g_logger) << "Fiber::Fiber id=" << m_id;
 }
 
 Fiber::~Fiber() {
@@ -104,15 +116,15 @@ void Fiber::swapIn() {
     m_state = EXEC;
 
     // 第一个参数是被换出去的协程，第二个是换进来的协程
-    if(swapcontext(&(t_threadFiber->m_ctx), &m_ctx)) {
+    if(swapcontext(&(Scheduler::GetMainFiber()->m_ctx), &m_ctx)) {
         AZURE_ASSERT2(false, "swapcontext");
     }
 }
 
-// 把主线程切换进来
+// 把主协程切换进来
 void Fiber::swapOut() {
-    SetThis(t_threadFiber.get());
-    if(swapcontext(&m_ctx, &(t_threadFiber->m_ctx))) {
+    SetThis(Scheduler::GetMainFiber());
+    if(swapcontext(&m_ctx, &(Scheduler::GetMainFiber()->m_ctx))) {
         AZURE_ASSERT2(false, "swapcontext");
     }
 }
@@ -152,6 +164,21 @@ uint64_t Fiber::TotalFibers() {
     return s_fiber_count;
 }
 
+void Fiber::call() {
+    SetThis(this);
+    m_state = EXEC;
+    if(swapcontext(&(t_threadFiber->m_ctx), &m_ctx)) {
+        AZURE_ASSERT2(false, "swapcontext");
+    }
+}
+
+void Fiber::back() {
+    SetThis(t_threadFiber.get());
+    if(swapcontext(&m_ctx, &(t_threadFiber->m_ctx))) {
+        AZURE_ASSERT2(false, "swapcontext");
+    }
+}
+
 void Fiber::MainFunc() {
     Fiber::ptr cur = GetThis();
     AZURE_ASSERT(cur);
@@ -162,11 +189,11 @@ void Fiber::MainFunc() {
     }
     catch(std::exception &e) {
         cur->m_state = EXCEPT;
-        AZURE_LOG_ERROR(g_logger) << "Fiber Except: " << e.what();
+        AZURE_LOG_ERROR(g_logger) << "Fiber Except: " << e.what() << " fiber_id=" << cur->m_id << std::endl << BacktraceToString();
     }
     catch(...) {
         cur->m_state = EXCEPT;
-        AZURE_LOG_ERROR(g_logger) << "Fiber Except";
+        AZURE_LOG_ERROR(g_logger) << "Fiber Except: " << " fiber_id=" << cur->m_id << std::endl << BacktraceToString();
     }
 
     // 让引用计数可以减到0
@@ -175,6 +202,35 @@ void Fiber::MainFunc() {
 
     // 协程的切换需要手动管理，执行完切回主协程
     raw_ptr->swapOut();
+
+    AZURE_ASSERT2(false, "never reach fiber_id = " + std::to_string(raw_ptr->m_id));
+}
+
+void Fiber::CallerMainFunc() {
+    Fiber::ptr cur = GetThis();
+    AZURE_ASSERT(cur);
+    try {
+        cur->m_cb();
+        cur->m_cb = nullptr;
+        cur->m_state = TERM;
+    }
+    catch(std::exception &e) {
+        cur->m_state = EXCEPT;
+        AZURE_LOG_ERROR(g_logger) << "Fiber Except: " << e.what() << " fiber_id=" << cur->m_id << std::endl << BacktraceToString();
+    }
+    catch(...) {
+        cur->m_state = EXCEPT;
+        AZURE_LOG_ERROR(g_logger) << "Fiber Except: " << " fiber_id=" << cur->m_id << std::endl << BacktraceToString();
+    }
+
+    // 让引用计数可以减到0
+    auto raw_ptr = cur.get();
+    cur.reset();
+
+    // 协程的切换需要手动管理，执行完切回主协程
+    raw_ptr->back();
+
+    AZURE_ASSERT2(false, "never reach fiber_id = " + std::to_string(raw_ptr->m_id));
 }
 
 }

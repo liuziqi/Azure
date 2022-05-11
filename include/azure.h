@@ -6,7 +6,9 @@
 #include "log.h"
 #include "config.h"
 #include "singleton.h"
+#include "mutex.h"
 #include "thread.h"
 #include "fiber.h"
+#include "scheduler.h"
 
 #endif

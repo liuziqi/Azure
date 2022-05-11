@@ -17,6 +17,7 @@
 #include "singleton.h"
 #include "log.h"
 #include "thread.h"
+#include "mutex.h"
 
 // construct后立即析构，立刻得到输出
 #define AZURE_LOG_LEVEL(logger, level) \
