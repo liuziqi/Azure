@@ -68,6 +68,7 @@ protected:
     virtual bool stopping();    // 返回是否可以停止
     virtual void idle();        // 空闲协程，没有任务做时运行该协程
     void setThis();             // 设置当前的协程调度器
+    bool hasIdleThreads() {return m_idleThreadCount > 0;}
 
 private:
     // 向协程队列添加一个协程

@@ -25,6 +25,7 @@ set(LIB_SRC
     src/thread.cpp
     src/mutex.cpp
     src/scheduler.cpp
+    src/iomanager.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -77,6 +78,12 @@ add_executable(test_scheduler tests/test_scheduler.cpp)
 add_dependencies(test_scheduler azure)
 force_redefine_file_macro_for_sources(test_scheduler)     # 修改__FILE__
 target_link_libraries(test_scheduler ${LIB_LIB})
+
+# test_iomanager
+add_executable(test_iomanager tests/test_iomanager.cpp)
+add_dependencies(test_iomanager azure)
+force_redefine_file_macro_for_sources(test_iomanager)     # 修改__FILE__
+target_link_libraries(test_iomanager ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
