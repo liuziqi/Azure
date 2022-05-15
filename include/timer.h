@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <set>
+#include <vector>
 #include "mutex.h"
 
 namespace azure {
@@ -16,13 +17,13 @@ friend class TimerManager;
 public:
     typedef std::shared_ptr<Timer> ptr;
 
-private:
-    Timer(uint64_t ms, std::function<void()> cb, bool recurring, TimerManager *manager);
-    Timer(uint64_t next);
-
     bool cancel();
     bool refresh();
     bool reset(uint64_t ms, bool from_now);
+
+private:
+    Timer(uint64_t ms, std::function<void()> cb, bool recurring, TimerManager *manager);
+    Timer(uint64_t next);
 
 private:
     bool m_recurring = false;               // 是否定义循环定时器
@@ -53,6 +54,8 @@ public:
     uint64_t getNextTimer();    // 获取下一个定时器的执行时间
 
     void listExpiredCb(std::vector<std::function<void()>> &cbs);
+
+    bool hasTimer();
 
 protected:
     virtual void onTimerInsertedAtFront() = 0;  // 重新设置之前 epoll_wait 设置的超时时间

@@ -26,6 +26,8 @@ set(LIB_SRC
     src/mutex.cpp
     src/scheduler.cpp
     src/iomanager.cpp
+    src/timer.cpp
+    src/hook.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -41,6 +43,7 @@ set(LIB_LIB
     azure
     pthread
     yaml-cpp
+    dl
 )
 
 # test_log
@@ -84,6 +87,12 @@ add_executable(test_iomanager tests/test_iomanager.cpp)
 add_dependencies(test_iomanager azure)
 force_redefine_file_macro_for_sources(test_iomanager)     # 修改__FILE__
 target_link_libraries(test_iomanager ${LIB_LIB})
+
+# test_hook
+add_executable(test_hook tests/test_hook.cpp)
+add_dependencies(test_hook azure)
+force_redefine_file_macro_for_sources(test_hook)     # 修改__FILE__
+target_link_libraries(test_hook ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

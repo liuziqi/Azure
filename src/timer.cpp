@@ -31,6 +31,7 @@ Timer::Timer(uint64_t next)
     : m_next(next) {
 }
 
+// 取消定时器
 bool Timer::cancel() {
     TimerManager::RWMutexType::WriteLock lock(m_manager->m_mutex);
     if(m_cb) {
@@ -183,6 +184,11 @@ bool TimerManager::detectClockRollover(uint64_t now_ms) {
     }
     m_previousTime = now_ms;
     return rollover;
+}
+
+bool TimerManager::hasTimer() {
+    RWMutexType::ReadLock lock(m_mutex);
+    return !m_timers.empty();
 }
 
 }

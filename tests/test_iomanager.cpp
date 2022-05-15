@@ -1,10 +1,10 @@
-#include "azure.h"
-#include "iomanager.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include "azure.h"
+#include "iomanager.h"
 
 azure::Logger::ptr g_logger = AZURE_LOG_ROOT();
 
@@ -49,7 +49,19 @@ void test1() {
     iom.schedule(&test_fiber);
 }
 
+void test_timer() {
+    azure::IOManager iom(2);
+    azure::Timer::ptr timer = iom.addTimer(1000, [&](){
+        static int i = 0; 
+        AZURE_LOG_INFO(g_logger) << "hello timer i=" << i;        
+        if(++i == 5) {
+            timer->cancel();
+        }
+    }, true);
+}
+
 int main(int argc, char **argv) {
-    test1();
+    // test1();
+    test_timer();
     return 0;
 }

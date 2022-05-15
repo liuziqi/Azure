@@ -1,6 +1,7 @@
 #include "scheduler.h"
 #include "log.h"
 #include "macro.h"
+#include "hook.h"
 
 namespace azure {
 
@@ -131,6 +132,8 @@ void Scheduler::setThis() {
 void Scheduler::run() {
     AZURE_LOG_INFO(g_logger) << m_name << " run";
 
+    set_hook_enable(true);
+
     setThis();  // 设置当前Scheduler
     
     // 如果不是主线程，初始化主协程，赋值给当前调度协程
@@ -210,8 +213,7 @@ void Scheduler::run() {
                 cb_fiber.reset();
             }
             else if(cb_fiber->getState() == Fiber::EXCEPT || cb_fiber->getState() == Fiber::TERM) {
-                // cb_fiber->reset(nullptr);           // callback reset
-                cb_fiber.reset();
+                cb_fiber->reset(nullptr);           // callback reset
             }
             else {
                 cb_fiber->m_state = Fiber::HOLD;
