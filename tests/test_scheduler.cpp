@@ -15,7 +15,7 @@ void test_fiber() {
 int main(int argc, char **argv) {
     azure::Thread::SetName("mainth");
     AZURE_LOG_INFO(g_logger) << "main";
-    azure::Scheduler sc(1, true, "test");
+    azure::Scheduler sc(1, false, "test");
     // sc.schedule(&tese_fiber);
     sc.start();
     AZURE_LOG_INFO(g_logger) << "schedule";

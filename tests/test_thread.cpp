@@ -5,6 +5,7 @@ azure::Logger::ptr g_logger = AZURE_LOG_ROOT();
 
 // 防止编译器优化
 // 不然编译器在编译的时候直接整一个 count+=100000
+// 和编译器优化等级相关 -O0, -O3
 volatile int count = 0;
 
 azure::Mutex s_mutex;

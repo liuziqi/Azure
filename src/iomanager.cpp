@@ -101,7 +101,6 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
     else {
         lock.unlock();
         RWMutexType::WriteLock lock2(m_mutex);
-        // DEBUG 扩完还不够怎么办
         contextResize(fd * 1.5);
         fd_ctx = m_fdContexts[fd];
     }
@@ -127,10 +126,15 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
 
     ++m_pendingEventCount;
     fd_ctx->events = (Event)(fd_ctx->events | event);
+
+    AZURE_LOG_INFO(g_logger) << "fd_ctx->events=" << fd_ctx->events;
+
     FdContext::EventContext &event_ctx = fd_ctx->getContext(event);
     AZURE_ASSERT(!event_ctx.scheduler && !event_ctx.fiber && !event_ctx.cb);
-
+    
     event_ctx.scheduler = Scheduler::GetThis();
+    AZURE_ASSERT(event_ctx.scheduler);
+
     if(cb) {
         event_ctx.cb.swap(cb);
     }
@@ -262,6 +266,8 @@ bool IOManager::stopping() {
 }
 
 void IOManager::idle() {
+    AZURE_LOG_INFO(g_logger) << "iomanager idle";
+
     epoll_event *events = new epoll_event[64]();
     std::shared_ptr<epoll_event> shared_events(events, [](epoll_event *ptr){delete[] ptr;});
     
@@ -272,12 +278,12 @@ void IOManager::idle() {
             break;
         }
 
-        do{
+        do {
             static const int MAX_TIMEOUT = 5000;    // 毫秒级
             rt = epoll_wait(m_epollfd, events, 64, MAX_TIMEOUT);
 
             if(rt < 0 && errno == EINTR) {  // EINTER 中断了
-
+                ;
             }   
             else {
                 break;
@@ -297,6 +303,7 @@ void IOManager::idle() {
             if(event.events & (EPOLLERR | EPOLLHUP)) {  // 错误或中断
                 event.events |= EPOLLIN | EPOLLOUT;     // 唤醒读和写事件
             }
+
             int real_events = NONE;
             if(event.events & EPOLLIN) {
                 real_events |= READ;
@@ -320,11 +327,11 @@ void IOManager::idle() {
                 continue;
             }
 
-            if(real_events &READ) {
+            if(real_events & READ) {
                 fd_ctx->triggerEvent(READ);
                 --m_pendingEventCount;
             }
-            if(real_events &WRITE) {
+            if(real_events & WRITE) {
                 fd_ctx->triggerEvent(WRITE);
                 --m_pendingEventCount;
             }

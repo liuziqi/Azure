@@ -11,9 +11,9 @@ public:
     typedef RWMutex RWMutexType;
 
     enum Event {
-        NONE = 0x0,
-        READ = 0x1,
-        WRITE = 0x2,
+        NONE    = 0x0,
+        READ    = 0x1,  // EPOLLIN
+        WRITE   = 0x4,  // EPOLLOUT
     };
 
 private:
@@ -33,7 +33,7 @@ private:
         int fd = 0;                             // 事件关联的句柄
         EventContext read;                      // 读事件
         EventContext write;                     // 写事件
-        Event events = NONE;                    // 已注册事件的类型
+        Event events = NONE;                    // 已注册事件
         MutexType mutex;
     };
 

@@ -39,6 +39,7 @@ Scheduler::Scheduler(size_t thread_num, bool use_caller, const std::string &name
         m_threadIds.push_back(m_rootThreadId);
     }
     else {
+        // t_scheduler = this;  // 不加这个主线程无法获取调度器
         m_rootThreadId = -1;
     }
     m_threadCount = thread_num;
@@ -52,6 +53,7 @@ Scheduler::~Scheduler() {
 }
 
 Scheduler *Scheduler::GetThis() {
+    // AZURE_LOG_INFO(g_logger) << "Scheduler::GetThis()=" << t_scheduler;
     return t_scheduler;
 }
 
@@ -87,8 +89,7 @@ void Scheduler::stop() {
         }
     }
 
-    // bool exit_on_this_fiber = false;
-    if(m_rootThreadId != -1) {  // 说明是use_caller（调度线程）
+    if(m_rootThreadId != -1) {  // 说明主线程不用来调度
         AZURE_ASSERT(GetThis() == this);
     }
     else {
@@ -97,11 +98,11 @@ void Scheduler::stop() {
 
     m_stopping = true;
     for(size_t i = 0; i < m_threadCount; ++i) {
-        // tickle();
+        tickle();
     }
 
     if(m_rootFiber) {
-        // tickle();
+        tickle();
     }
 
     if(m_rootFiber) {
@@ -122,6 +123,7 @@ void Scheduler::stop() {
 }
 
 void Scheduler::setThis() {
+    // AZURE_LOG_INFO(g_logger) << "Scheduler::setThis()=" << this;
     t_scheduler = this;
 }
 
@@ -222,6 +224,7 @@ void Scheduler::run() {
             }
             if(idle_fiber->getState() == Fiber::TERM) {
                 AZURE_LOG_INFO(g_logger) << "idle fiber term";
+                tickle();
                 break;  // 空闲协程执行完就结束线程
             }
 
