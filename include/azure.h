@@ -10,5 +10,7 @@
 #include "thread.h"
 #include "fiber.h"
 #include "scheduler.h"
+#include "hook.h"
+#include "iomanager.h"
 
 #endif

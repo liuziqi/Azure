@@ -4,21 +4,17 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include <atomic>
+#include "noncopyable.h"
 
 namespace azure {
 
-class Semaphore {
+class Semaphore : public Noncpoyable {
 public:
     Semaphore(uint32_t count = 0);
     ~Semaphore();
 
     void wait();
     void notify();
-
-private:
-    Semaphore(const Semaphore&) = delete;
-    Semaphore(const Semaphore&&) = delete;
-    Semaphore &operator=(const Semaphore&) = delete;
 
 private:
     sem_t m_semaphore;
@@ -57,7 +53,7 @@ private:
     bool m_locked;
 };
 
-class Mutex {
+class Mutex : public Noncpoyable {
 public:
     typedef ScopedLockImpl<Mutex> Lock;
 
@@ -81,7 +77,7 @@ private:
     pthread_mutex_t m_mutex;
 };
 
-class CASLock {
+class CASLock : public Noncpoyable {
 public:
     typedef ScopedLockImpl<CASLock> Lock;
 
@@ -106,7 +102,7 @@ private:
 };
 
 // 测试用的，测试把锁换成空锁会出现什么情况
-class NullMutex {
+class NullMutex : public Noncpoyable {
 public:
     typedef ScopedLockImpl<NullMutex> Lock;
     NullMutex() {}
@@ -181,7 +177,7 @@ private:
 
 // LEARN 各种锁的特点和应用场景
 // 读写锁
-class RWMutex {
+class RWMutex : public Noncpoyable {
 public:
     typedef ReadScopedLockImpl<RWMutex> ReadLock;
     typedef WriteScopedLockImpl<RWMutex> WriteLock;
@@ -211,7 +207,7 @@ private:
 };
 
 // 测试用的，测试把锁换成空锁会出现什么情况
-class NullRWMutex {
+class NullRWMutex : public Noncpoyable {
 public:
     typedef ReadScopedLockImpl<RWMutex> ReadLock;
     typedef WriteScopedLockImpl<RWMutex> WriteLock;
@@ -222,7 +218,7 @@ public:
     void unlock() {}
 };
 
-class Spinlock {
+class Spinlock : public Noncpoyable {
 public:
     typedef ScopedLockImpl<Spinlock> Lock;
 

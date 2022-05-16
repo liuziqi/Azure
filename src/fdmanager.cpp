@@ -30,7 +30,7 @@ bool FdCtx::init() {
     }
     else {
         m_isInit = true;
-        m_isClosed = S_ISSOCK(fd_stat.st_mode);
+        m_isSocket = S_ISSOCK(fd_stat.st_mode);
     }
 
     if(m_isSocket) {
@@ -72,7 +72,7 @@ FdManager::FdManager() {
 
 FdCtx::ptr FdManager::get(int fd, bool auto_create) {
     RWMutexType::ReadLock lock(m_mutex);
-    if(m_data.size() <= fd) {
+    if((int)m_data.size() <= fd) {
         if(auto_create == false) {
             return nullptr;
         }
@@ -92,7 +92,7 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create) {
 
 void FdManager::del(int fd) {
     RWMutexType::WriteLock lock(m_mutex);
-    if(m_data.size() <= fd) {
+    if((int)m_data.size() <= fd) {
         return;
     }
     m_data[fd].reset();

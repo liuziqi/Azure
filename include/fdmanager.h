@@ -18,7 +18,7 @@ public:
     bool init();
     bool isInit() const {return m_isInit;}
     bool isSocket() const {return m_isSocket;}
-    bool isClose() const {return m_isClosed;}
+    bool isClosed() const {return m_isClosed;}
     bool close();
 
     void setUserNonblock(bool v) {m_userNonblock = v;}
