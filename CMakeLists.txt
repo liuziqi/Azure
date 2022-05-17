@@ -29,6 +29,7 @@ set(LIB_SRC
     src/timer.cpp
     src/hook.cpp
     src/fdmanager.cpp
+    src/address.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC

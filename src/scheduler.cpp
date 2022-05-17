@@ -147,6 +147,7 @@ void Scheduler::run() {
         t_scheduler_fiber = Fiber::GetThis().get();
     }
     
+    // LEARN 这里 bind函数靠 this 来区分父类和子类（Sheduler 和 IOManager）？
     Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));    // 所有协程任务都完成就运行idle_fiber
     Fiber::ptr cb_fiber;    // 如果取得的是callback，就用这个协程执行
 

@@ -27,6 +27,7 @@ Timer::Timer(uint64_t ms, std::function<void()> cb, bool recurring, TimerManager
     m_next = azure::GetCurrentMS() + m_ms;
 }
 
+// 只用来进行比较
 Timer::Timer(uint64_t next)
     : m_next(next) {
 }
@@ -43,6 +44,7 @@ bool Timer::cancel() {
     return false;
 }
 
+// 刷新定时器 m_next = azure::GetCurrentMS() + m_ms;
 bool Timer::refresh() {
     TimerManager::RWMutexType::WriteLock lock(m_manager->m_mutex);
     if(!m_cb) {
@@ -58,6 +60,7 @@ bool Timer::refresh() {
     return true;
 }
 
+// 修改超时时间
 bool Timer::reset(uint64_t ms, bool from_now) {
     if(ms == m_ms && !from_now) {
         return true;
@@ -110,6 +113,7 @@ Timer::ptr TimerManager::addConditionTimer(uint64_t ms, std::function<void()> cb
     return addTimer(ms, std::bind(&OnTimer, weak_cond, cb), recurring);
 }
 
+// 获取距离下一次触发定时器所需要的时间
 uint64_t TimerManager::getNextTimer() {
     RWMutexType::ReadLock lock(m_mutex);
     m_tickled = false;
@@ -127,6 +131,7 @@ uint64_t TimerManager::getNextTimer() {
     }
 }
 
+// 获取所有已超时的定时器的回调函数
 void TimerManager::listExpiredCb(std::vector<std::function<void()>> &cbs) {
     uint64_t now_ms = azure::GetCurrentMS();
     std::vector<Timer::ptr> expired;
@@ -176,6 +181,7 @@ void TimerManager::addTimer(Timer::ptr timer, RWMutexType::WriteLock &lock) {
 }
 
 // FIXME 逻辑有问题
+// 处理服务器调整过时间的情况
 bool TimerManager::detectClockRollover(uint64_t now_ms) {
     bool rollover = false;
     // 当前时间小于m_previousTime，且小于1小时

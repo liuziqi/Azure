@@ -11,11 +11,12 @@ FdCtx::FdCtx(int fd)
     , m_userNonblock(false)
     , m_isClosed(false)
     , m_fd(fd)
-    , m_recvTimeout(-1)
+    , m_recvTimeout(-1)     // uint64_t的最大值
     , m_sendTimeout(-1) {
     init();
 }
 
+// 初始化文件描述符类对象，如果是socket，设置成非阻塞的
 bool FdCtx::init() {
     if(m_isInit) {
         return true;
@@ -33,6 +34,7 @@ bool FdCtx::init() {
         m_isSocket = S_ISSOCK(fd_stat.st_mode);
     }
 
+    // 如果是socket，设置成非阻塞的
     if(m_isSocket) {
         int flags = fcntl_f(m_fd, F_GETFL, 0);
         if(!(flags & O_NONBLOCK)) {

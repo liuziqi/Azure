@@ -63,7 +63,7 @@ private:
     int m_tickleFds[2];
 
     std::atomic<size_t> m_pendingEventCount{0};
-    RWMutex m_mutex;
+    RWMutexType m_mutex;
     std::vector<FdContext*> m_fdContexts;
 };
 

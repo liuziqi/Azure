@@ -138,6 +138,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
     if(cb) {
         event_ctx.cb.swap(cb);
     }
+    // 有用吗？
     else {
         event_ctx.fiber = Fiber::GetThis();
         AZURE_ASSERT(event_ctx.fiber->getState() == Fiber::EXEC);
@@ -271,6 +272,9 @@ bool IOManager::stopping() {
     return stopping(timeout);
 }
 
+// IOManager 继承自 Scheduler，所以逻辑是 IOManager::run --> 有任务 ？ 执行任务协程 ：执行 IOManager::idle
+// 把触发的回调函数（超时事件和io事件）添加到协程任务队列里
+// run负责执行事件，idle负责添加事件，每个线程都会这样做
 void IOManager::idle() {
     AZURE_LOG_INFO(g_logger) << "iomanager idle";
 
@@ -278,6 +282,7 @@ void IOManager::idle() {
     std::shared_ptr<epoll_event> shared_events(events, [](epoll_event *ptr){delete[] ptr;});
     
     int rt = 0;
+    // 该idle协程永远不会终止，只会切来切去
     while(true) {
         uint64_t next_timeout = 0;
 
@@ -309,7 +314,7 @@ void IOManager::idle() {
         std::vector<std::function<void()>> cbs;
         listExpiredCb(cbs);
         if(!cbs.empty()) {
-            schedule(cbs.begin(), cbs.end());   // 执行定时器事件
+            schedule(cbs.begin(), cbs.end());   // 添加超时任务
             cbs.clear();
         }
 

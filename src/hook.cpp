@@ -77,6 +77,7 @@ struct timer_info {
     int cancelled = 0;
 };
 
+// 一般来说，是一个协程在执行该函数
 template<typename OriginFun, typename ... Args>
 static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t event, int timeout_so, Args &&... args) {
     if(!azure::t_hook_enable) {
@@ -116,7 +117,7 @@ retry:
     while(-1 == n && errno == EINTR) {                  // 中断重试
         n = fun(fd, std::forward<Args>(args)...);
     }
-    if(-1 == n && errno == EAGAIN) {                    // 阻塞，需要做异步操作
+    if(-1 == n && errno == EAGAIN) {                    // 非阻塞立即返回，需要做异步操作
 
         // AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << ">";
 
@@ -124,7 +125,7 @@ retry:
         azure::Timer::ptr timer;
         std::weak_ptr<timer_info> winfo(tinfo);         // weak info
 
-        if((uint64_t)-1 != to) {                        // (uint64_t)-1 等价于 ~0ull
+        if((uint64_t)-1 != to) {                        // m_recvTimeout 和 m_sendTimeout 的初始值是 (uint64_t)-1
             timer = iom->addConditionTimer(to, [winfo, fd, iom, event](){
                 auto t = winfo.lock();                  // 超时事件放入定时器，当定时器到达时间，强制cancel
                 if(!t || t->cancelled) {
@@ -146,11 +147,11 @@ retry:
         else {
             AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> YieldToHold";
 
-            azure::Fiber:: YieldToHold();               // 执行成功，让出当前协程执行时间，被唤醒有两种条件：
+            azure::Fiber:: YieldToHold();               // 执行成功，让出当前协程执行时间，被唤醒有两种条件：1. 定时器超时；2. 完成了io
 
             AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> Exec";
 
-            if(timer) {                                 // 1. 定时器超时；2. 完成了io
+            if(timer) {
                 timer->cancel();
             }
             if(tinfo->cancelled) {
