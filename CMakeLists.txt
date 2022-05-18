@@ -30,6 +30,7 @@ set(LIB_SRC
     src/hook.cpp
     src/fdmanager.cpp
     src/address.cpp
+    src/socket.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -101,6 +102,12 @@ add_executable(test_address tests/test_address.cpp)
 add_dependencies(test_address azure)
 force_redefine_file_macro_for_sources(test_address)     # 修改__FILE__
 target_link_libraries(test_address ${LIB_LIB})
+
+# test_socket
+add_executable(test_socket tests/test_socket.cpp)
+add_dependencies(test_socket azure)
+force_redefine_file_macro_for_sources(test_socket)     # 修改__FILE__
+target_link_libraries(test_socket ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

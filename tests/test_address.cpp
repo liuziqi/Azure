@@ -22,7 +22,7 @@ void test() {
 }
 
 void test_iface() {
-    std::multimap<std::string, std::pair<azure::Address::ptr, uint32_t>> results;
+    std::multimap<std::string, std::pair<azure::Address::ptr, uint16_t>> results;
     bool v = azure::Address::GetInterfaceAddress(results);
     if(!v) {
         AZURE_LOG_ERROR(g_logger) << "GetInterfaceAddress fail";
