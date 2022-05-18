@@ -3,14 +3,19 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <map>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <iostream>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 
 namespace azure {
+
+class IPAddress;
 
 // 基类，子类有：ipv4、ipv6、unixaddress（本地通信）
 class Address {
@@ -18,7 +23,11 @@ public:
     typedef std::shared_ptr<Address> ptr;
 
     static Address::ptr Create(const sockaddr *addr, socklen_t addrlen);
-    static bool Lookup(std::vector<Address::ptr> &result, const std::string &host, int family=AF_UNSPEC, int type=0, int protocol=0);
+    static bool Lookup(std::vector<Address::ptr> &result, const std::string &host, int family=AF_INET, int type=0, int protocol=0);
+    static Address::ptr LookupAny(const std::string &host, int family=AF_INET, int type=0, int protocol=0);
+    static std::shared_ptr<IPAddress> LookupAnyIPAddress(const std::string &host, int family=AF_INET, int type=0, int protocol=0);
+    static bool GetInterfaceAddress(std::multimap<std::string, std::pair<Address::ptr, uint32_t>> &result, int family=AF_UNSPEC);
+    static bool GetInterfaceAddress(std::vector<std::pair<Address::ptr, uint32_t>> &result, const std::string &iface, int family=AF_UNSPEC);
 
     virtual ~Address() {};
 

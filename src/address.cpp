@@ -13,13 +13,23 @@ static T CreateMask(uint32_t bits) {
     return (1 << (sizeof(T) * 8 - bits)) - 1;
 }
 
+// 统计1的个数
+template<typename T>
+static uint32_t CountBytes(T value) {
+    uint32_t result = 0;
+    for(; value; ++result) {
+        value &= value - 1;
+    }
+    return result;
+}
+
 Address::ptr Address::Create(const sockaddr *addr, socklen_t addrlen) {
     if(addr == nullptr) {
         return nullptr;
     }
 
     Address::ptr result;
-    switch(name->sa_family) {
+    switch(addr->sa_family) {
     case AF_INET:
         result.reset(new IPv4Address(*(const sockaddr_in*)addr));
         break;
@@ -30,25 +40,161 @@ Address::ptr Address::Create(const sockaddr *addr, socklen_t addrlen) {
         result.reset(new UnknowAddress(*addr));
         break;
     }
+    return result;
 }
 
+Address::ptr Address::LookupAny(const std::string &host, int family, int type, int protocol) {
+    std::vector<Address::ptr> result;
+    if(Lookup(result, host, family, type, protocol)) {
+        return result[0];
+    }
+    return nullptr;
+}
+
+std::shared_ptr<IPAddress> Address::LookupAnyIPAddress(const std::string &host, int family, int type, int protocol) {
+    std::vector<Address::ptr> result;
+    if(Lookup(result, host, family, type, protocol)) {
+        for(auto &i : result) {
+            IPAddress::ptr v = std::dynamic_pointer_cast<IPAddress>(i);
+            if(v) {
+                return v;
+            }
+        }
+    }
+    return nullptr;
+}
+
+// 根据host解析ip地址
 bool Address::Lookup(std::vector<Address::ptr> &result, const std::string &host, int family, int type, int protocol) {
-    addrinfo hints, *result, *next;
+    struct addrinfo hints, *results, *next;
     hints.ai_flags = 0;
     hints.ai_family = family;
     hints.ai_socktype = type;
     hints.ai_protocol = protocol;
-    hints.ai_addr = 0;
-    hints.ai_canonname = nullptr;
-    hints.ai_addr = nullptr;
-    hints.ai_next = nullptr;
+    hints.ai_addrlen = 0;
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
 
     std::string node;
-    const char *service = nullptr;
+    const char *service = NULL;
 
+    // 检查ipv6的地址和service
     if(!host.empty() && host[0] == '[') {
-        const char *endipv6 = (const char *)memchr(host.c_str() + 1, "]", host.size() - 1);
+        const char *endipv6 = (const char *)memchr(host.c_str() + 1, ']', host.size() - 1);
+        if(endipv6) {
+            // TODO check out of range
+            if(*(endipv6 + 1) == ':') {
+                service = endipv6 + 2;
+            }
+            node = host.substr(1, endipv6 - host.c_str() - 1);
+        }
     }
+
+    // 检查 node service（比如http服务，检测到了就会转换成80端口）
+    if(node.empty()) {
+        service = (const char *)memchr(host.c_str(), ':', host.size());
+        if(service) {
+            if(!memchr(service + 1, ':', host.c_str() + host.size() - service - 1)) {
+                node = host.substr(0, service - host.c_str());
+                ++service;
+            }
+        }
+    }
+
+    if(node.empty()) {
+        node = host;
+    }
+    int error = getaddrinfo(node.c_str(), service, &hints, &results);
+    if(error) {
+        AZURE_LOG_ERROR(g_logger) << "Address: Lookup getaddress(" << host << ", " << family << ", " << type << ") err=" << error << "errstr=" << strerror(errno);
+        return false;
+    }
+
+    next = results;
+    while(next) {
+        result.push_back(Create(next->ai_addr, (socklen_t)next->ai_addrlen));
+        // AZURE_LOG_INFO(g_logger) << ((sockaddr_in*)next->ai_addr)->sin_addr.s_addr;
+        next = next->ai_next;
+    }
+
+    freeaddrinfo(results);
+    return !result.empty();
+}
+
+// 获取网卡地址
+bool Address::GetInterfaceAddress(std::multimap<std::string, std::pair<Address::ptr, uint32_t>> &result, int family) {
+    struct ifaddrs *next, *results;
+    if(getifaddrs(&results) != 0) {
+        AZURE_LOG_ERROR(g_logger) << "Address::GetInterfaceAddress getifaddrs " << " err=" << errno << "errstr=" << strerror(errno);
+        return false;
+    }
+
+    try {
+        for(next = results; next; next = next->ifa_next) {
+            Address::ptr addr;
+            uint32_t prefix_length = ~0u;
+            if(family != AF_UNSPEC && family != next->ifa_addr->sa_family) {
+                continue;
+            }
+            switch(next->ifa_addr->sa_family) {
+            case AF_INET:
+                {
+                    addr = Create(next->ifa_addr, sizeof(sockaddr_in));
+                    uint32_t netmask = ((sockaddr_in*)next->ifa_netmask)->sin_addr.s_addr;
+                    prefix_length = CountBytes(netmask);    // 统计1的个数
+                }
+                break;
+            case AF_INET6:
+                {
+                    addr = Create(next->ifa_addr, sizeof(sockaddr_in6));
+                    in6_addr &netmask = ((sockaddr_in6*)next->ifa_netmask)->sin6_addr;
+                    prefix_length = 0;
+                    for(int i = 0; i < 16; ++i) {
+                        prefix_length += CountBytes(netmask.s6_addr[i]);
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+
+            if(addr) {
+                result.insert(std::make_pair(next->ifa_name, std::make_pair(addr, prefix_length)));
+            }
+        }
+    }
+    catch(...) {
+        AZURE_LOG_ERROR(g_logger) << "Address::GetInterfaceAddress exception";
+        freeifaddrs(results);
+        return false;
+    }
+    freeifaddrs(results);
+    return true;
+}
+
+// 获取指定网卡地址
+bool Address::GetInterfaceAddress(std::vector<std::pair<Address::ptr, uint32_t>> &result, const std::string &iface, int family) {
+    if(iface.empty() || iface == "*") {
+        if(family == AF_INET || family == AF_UNSPEC) {
+            result.push_back(std::make_pair(Address::ptr(new IPv4Address()), 0u));
+        }
+        if(family == AF_INET6 || family == AF_UNSPEC) {
+            result.push_back(std::make_pair(Address::ptr(new IPv6Address()), 0u));
+        }
+        return true;
+    }
+
+    std::multimap<std::string, std::pair<Address::ptr, uint32_t>> results;
+    if(!GetInterfaceAddress(results, family)) {
+        return false;
+    }
+
+    auto its = results.equal_range(iface);
+    for(; its.first != its.second; ++its.first) {
+        result.push_back(its.first->second);
+    }
+    return true;
 }
 
 int Address::getFamily() const {
@@ -79,11 +225,11 @@ bool Address::operator!=(const Address &rhs) const {
 }
 
 // 将域名转换为IP地址
-IPAddress::ptr IPAddress::Create(const char *address, uint32_t port=0) {
+IPAddress::ptr IPAddress::Create(const char *address, uint32_t port) {
     addrinfo hints, *results;
     memset(&hints, 0, sizeof(hints));
 
-    hints.ai_flags = AI_NUMERICHOST;
+    // hints.ai_flags = AI_NUMERICHOST;
     hints.ai_family = AF_UNSPEC;
 
     int error = getaddrinfo(address, NULL, &hints, &results);
@@ -227,7 +373,7 @@ std::ostream &IPv6Address::insert(std::ostream &os) const  {
         if(i) {
             os << ":";
         }
-        os << (int)byteswapOnLittleEndian(addr[i]);
+        os << std::hex << (int)byteswapOnLittleEndian(addr[i]) << std::dec;
     }
 
     if(!used_zeros && addr[7] == 0) {

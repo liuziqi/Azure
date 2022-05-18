@@ -96,5 +96,11 @@ add_dependencies(test_hook azure)
 force_redefine_file_macro_for_sources(test_hook)     # 修改__FILE__
 target_link_libraries(test_hook ${LIB_LIB})
 
+# test_address
+add_executable(test_address tests/test_address.cpp)
+add_dependencies(test_address azure)
+force_redefine_file_macro_for_sources(test_address)     # 修改__FILE__
+target_link_libraries(test_address ${LIB_LIB})
+
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
