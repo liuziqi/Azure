@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 #include "bytearray.h"
 #include "endian_.h"
 #include "log.h"
@@ -12,14 +13,14 @@ static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 
 ByteArray::Node::Node(size_t s) 
     : ptr(new char[s])
-    , size(s)
-    , next(nullptr) {
+    , next(nullptr)
+    , size(s) {
 }
 
 ByteArray::Node::Node()
     : ptr(nullptr)
-    , size(0)
-    , next(nullptr) {
+    , next(nullptr)
+    , size(0) {
 }
 
 ByteArray::Node::~Node() {
@@ -31,7 +32,7 @@ ByteArray::Node::~Node() {
     // next = nullptr;
 }
 
-ByteArray::ByteArray(size_t basesize=4096) 
+ByteArray::ByteArray(size_t basesize) 
     : m_basesize(basesize)
     , m_position(0)
     , m_capacity(basesize)
@@ -111,19 +112,19 @@ void ByteArray::writeFuint64(uint64_t value) {
 
 // LEARN 编解码的方式，可以学习一下
 static uint32_t EncodeZigzag32(int32_t v) {
-    return v < 0 ? ((uint32_t)(-v) * 2 - 1) : v * 2;    // 偶数是正数，奇数是负数
+    return v < 0 ? ((uint32_t)(-v)) * 2 - 1 : v * 2;    // 偶数是正数，奇数是负数
 }
 
 static uint64_t EncodeZigzag64(int64_t v) {
-    return v < 0 ? ((uint64_t)(-v) * 2 - 1) : v * 2;    // 偶数是正数，奇数是负数
+    return v < 0 ? ((uint64_t)(-v)) * 2 - 1 : v * 2;    // 偶数是正数，奇数是负数
 }
 
 static int32_t DecodeZigzag32(uint32_t v) {
-    return (v >> 1) ^ (-(v & 1));
+    return (v >> 1) ^ -(v & 1);
 }
 
 static int64_t DecodeZigzag64(uint64_t v) {
-    return (v >> 1) ^ (-(v & 1));
+    return (v >> 1) ^ -(v & 1);
 }
 
 void ByteArray::writeInt32(int32_t value) {
@@ -139,7 +140,7 @@ void ByteArray::writeUint32(uint32_t value) {
         value >>= 7;
     }
     tmp[i++] = value;
-    write(&tmp, i);
+    write(tmp, i);
 }
 
 void ByteArray::writeInt64(int64_t value) {
@@ -155,7 +156,7 @@ void ByteArray::writeUint64(uint64_t value) {
         value >>= 7;
     }
     tmp[i++] = value;
-    write(&tmp, i);
+    write(tmp, i);
 }
 
 void ByteArray::writeFloat(float value) {
@@ -200,13 +201,13 @@ void ByteArray::writeStringWithoutLength(const std::string &value) {
 }  
 
 // read
-int8_t      ByteArray::readFint8() {
+int8_t ByteArray::readFint8() {
     int8_t v;
     read(&v, sizeof(v));
     return v;
 }
 
-uint8_t     ByteArray::readFuint8() {
+uint8_t ByteArray::readFuint8() {
     uint8_t v;
     read(&v, sizeof(v));
     return v;
@@ -220,42 +221,43 @@ uint8_t     ByteArray::readFuint8() {
     } \
     return v; \
 
-int16_t     ByteArray::readFint16() {
+int16_t ByteArray::readFint16() {
     XX(int16_t);
 }
 
-uint16_t    ByteArray::readFuint16() {
+uint16_t ByteArray::readFuint16() {
     XX(uint16_t);
 }
 
-int32_t     ByteArray::readFint32() {
+int32_t ByteArray::readFint32() {
     XX(int32_t);
 }
 
-uint32_t    ByteArray::readFuint32() {
+uint32_t ByteArray::readFuint32() {
     XX(uint32_t);
 }
 
-int64_t     ByteArray::readFint64() {
+int64_t ByteArray::readFint64() {
     XX(int64_t);
 }
 
-uint64_t    ByteArray::readFuint64() {
+uint64_t ByteArray::readFuint64() {
     XX(uint64_t);
 }
 
 #undef XX
 
-int32_t     ByteArray::readInt32() {
+int32_t ByteArray::readInt32() {
     return DecodeZigzag32(readUint32());
 }
 
-uint32_t    ByteArray::readUint32() {
+uint32_t ByteArray::readUint32() {
     uint32_t result = 0;
     for(int i = 0; i < 32; i += 7) {
-        uint8_t b = readFint8();
+        uint8_t b = readFuint8();
         if(b < 0x80) {
-            result |= (((uint32_t)b) << i);
+            result |= ((uint32_t)b) << i;
+            break;
         }
         else {
             result |= (((uint32_t)(b & 0x7f)) << i);
@@ -264,32 +266,32 @@ uint32_t    ByteArray::readUint32() {
     return result;
 }
 
-int64_t     ByteArray::readInt64() {
+int64_t ByteArray::readInt64() {
     return DecodeZigzag64(readUint64());
 }
 
-uint64_t    ByteArray::readUint64() {
+uint64_t ByteArray::readUint64() {
     uint64_t result = 0;
     for(int i = 0; i < 64; i += 7) {
-        uint8_t b = readFint8();
+        uint8_t b = readFuint8();
         if(b < 0x80) {
-            result |= (((uint64_t)b) << i);
-        }
-        else {
+            result |= ((uint64_t)b) << i;
+            break;
+        } else {
             result |= (((uint64_t)(b & 0x7f)) << i);
         }
     }
     return result;
 }
 
-float       ByteArray::readFloat() {
+float ByteArray::readFloat() {
     uint32_t v = readFuint32();
     float value;
     memcpy(&value, &v, sizeof(v));
     return value;
 }
 
-double      ByteArray::readDouble() {
+double ByteArray::readDouble() {
     uint64_t v = readFuint64();
     double value;
     memcpy(&value, &v, sizeof(v));
@@ -358,7 +360,7 @@ void ByteArray::write(const void *buf, size_t size) {
 
     while(size > 0) {
         if(ncap >= size) {
-            memcpy(m_cur->ptr + npos, buf + bpos, size);
+            memcpy(m_cur->ptr + npos, (const char*)buf + bpos, size);
             if(m_cur->size == (npos + size)) {
                 m_cur = m_cur->next;
             }
@@ -367,7 +369,7 @@ void ByteArray::write(const void *buf, size_t size) {
             size = 0;
         }
         else {
-            memcpy(m_cur->ptr + npos, buf + bpos, ncap);
+            memcpy(m_cur->ptr + npos, (const char*)buf + bpos, ncap);
             m_position += ncap;
             bpos += ncap;
             size -= ncap;
@@ -377,8 +379,7 @@ void ByteArray::write(const void *buf, size_t size) {
         }
     }
 
-    if(m_position > size) {
-        m_position > m_size;
+    if(m_position > m_size) {
         m_size = m_position;
     }
 }
@@ -394,7 +395,7 @@ void ByteArray::read(void *buf, size_t size) {
 
     while(size > 0) {
         if(ncap >= size) {
-            memcpy(buf + bpos, m_cur->ptr + npos, size);
+            memcpy((char*)buf + bpos, m_cur->ptr + npos, size);
             if(m_cur->size == (npos + size)) {
                 m_cur = m_cur->next;
             }
@@ -403,7 +404,7 @@ void ByteArray::read(void *buf, size_t size) {
             size = 0;
         }
         else {
-            memcpy(buf + bpos, m_cur->ptr + npos, ncap);
+            memcpy((char*)buf + bpos, m_cur->ptr + npos, ncap);
             m_position += ncap;
             bpos += ncap;
             size -= ncap;
@@ -415,7 +416,7 @@ void ByteArray::read(void *buf, size_t size) {
 }
 
 void ByteArray::read(void *buf, size_t size, size_t position) const {
-    if(size > getReadSize()) {
+    if(size > (m_size - position)) {
         throw std::out_of_range("not enough len");
     }
 
@@ -426,7 +427,7 @@ void ByteArray::read(void *buf, size_t size, size_t position) const {
 
     while(size > 0) {
         if(ncap >= size) {
-            memcpy(buf + bpos, m_cur->ptr + npos, size);
+            memcpy((char*)buf + bpos, cur->ptr + npos, size);
             if(cur->size == (npos + size)) {
                 cur = cur->next;
             }
@@ -435,12 +436,12 @@ void ByteArray::read(void *buf, size_t size, size_t position) const {
             size = 0;
         }
         else {
-            memcpy(buf + bpos, m_cur->ptr + npos, ncap);
+            memcpy((char*)buf + bpos, cur->ptr + npos, ncap);
             position += ncap;
             bpos += ncap;
             size -= ncap;
             cur = cur->next;
-            ncap = m_cur->size;
+            ncap = cur->size;
             npos = 0;
         }
     }
@@ -505,13 +506,13 @@ void ByteArray::addCapacity(size_t size) {
     if(size == 0) {
         return;
     }
-    int old_cap = getCapacity();
-    if(getCapacity() >= size) {
+    size_t old_cap = getCapacity();
+    if(old_cap >= size) {
         return;
     }
 
     size = size - old_cap;
-    size_t count = (size / m_basesize) + (((size % m_basesize) > old_cap) ? 1 : 0);
+    size_t count = ceil(1.0 * size / m_basesize);
     Node *tmp = m_root;
     while(tmp->next) {
         tmp = tmp->next;
@@ -535,6 +536,9 @@ void ByteArray::addCapacity(size_t size) {
 std::string ByteArray::toString() const {
     std::string str;
     str.resize(getReadSize());
+    if(str.empty()) {
+        return str;
+    }
     read(&str[0], str.size(), m_position);
     return str;
 }
@@ -547,8 +551,113 @@ std::string ByteArray::toHexString() const {
         if(i > 0 && i % 32 == 0) {
             ss << std::endl;
         }
-        ss << std::setw(2)
+        ss << std::setw(2) << std::setfill('0') << std::hex << (int)(uint8_t)str[i] << " ";
     }
+
+    return ss.str();
+}
+
+uint64_t ByteArray::getReadBuffers(std::vector<iovec> &buffers, uint32_t len) const {
+    len = len > getReadSize() ? getReadSize() : len;
+    if(len == 0) {
+        return 0;
+    }
+
+    uint64_t size = len;
+
+    size_t npos = m_position % m_basesize;
+    size_t ncap = m_cur->size - npos;
+    struct iovec iov;
+    Node * cur = m_cur;
+
+    while(len > 0) {
+        if(ncap >= len) {
+            iov.iov_base = cur->ptr + npos;
+            iov.iov_len = len;
+            len = 0;
+        }
+        else {
+            iov.iov_base = cur->ptr + npos;
+            iov.iov_len = ncap;
+            len -= ncap;
+            cur = cur->next;
+            ncap = cur->size;
+            npos = 0;
+        }
+
+        buffers.push_back(iov);
+    }
+    return size;
+}
+
+uint64_t ByteArray::getReadBuffers(std::vector<iovec> &buffers, uint32_t len, uint64_t position) const {
+    len = len > getReadSize() ? getReadSize() : len;
+    if(len == 0) {
+        return 0;
+    }
+
+    uint64_t size = len;
+
+    size_t npos = position % m_basesize;
+    size_t count = position / m_basesize;
+    Node *cur = m_root;
+    while(count > 0) {
+        cur = cur->next;
+        --count;
+    }
+
+    size_t ncap = cur->size - npos;
+    struct iovec iov;
+
+    while(len > 0) {
+        if(ncap >= len) {
+            iov.iov_base = cur->ptr + npos;
+            iov.iov_len = len;
+            len = 0;
+        }
+        else {
+            iov.iov_base = cur->ptr + npos;
+            iov.iov_len = ncap;
+            len -= ncap;
+            cur = cur->next;
+            ncap = cur->size;
+            npos = 0;
+        }
+
+        buffers.push_back(iov);
+    }
+    return size;
+}
+
+uint64_t ByteArray::getWriteBuffers(std::vector<iovec> &buffers, uint64_t len) {
+    if(len == 0) {
+        return 0;
+    }
+    addCapacity(len);
+    uint64_t size = len;
+
+    size_t npos = m_position % m_basesize;
+    size_t ncap = m_cur->size - npos;
+    struct iovec iov;
+    Node *cur = m_cur;
+    while(len > 0) {
+        if(ncap >= len) {
+            iov.iov_base = cur->ptr + npos;
+            iov.iov_len = len;
+            len = 0;
+        }
+        else {
+            iov.iov_base = cur->ptr + npos;
+            iov.iov_len = ncap;
+
+            len -= ncap;
+            cur = cur->next;
+            ncap = cur->size;
+            npos = 0;
+        }
+        buffers.push_back(iov);
+    }
+    return size;
 }
 
 }

@@ -228,7 +228,7 @@ Logger::Logger(const std::string &name)
     : m_name(name)
     , m_level(LogLevel::DEBUG) {
     // m_formatter.reset(new LogFormatter("%d %t %F [%p] [%c] %f:%l %m%n"));
-    m_formatter.reset(new LogFormatter("%d%T%r%T%t%T%N%T%F%T[%p]%T[%c]%T%f:%l%T%m%n"));
+    m_formatter.reset(new LogFormatter("%d%T%t%T%N%T%F%T[%p]%T[%c]%T%f:%l%T%m%n"));
 }
 
 void Logger::addAppender(LogAppender::ptr appender) {

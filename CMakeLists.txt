@@ -31,6 +31,7 @@ set(LIB_SRC
     src/fdmanager.cpp
     src/address.cpp
     src/socket.cpp
+    src/bytearray.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -108,6 +109,12 @@ add_executable(test_socket tests/test_socket.cpp)
 add_dependencies(test_socket azure)
 force_redefine_file_macro_for_sources(test_socket)     # 修改__FILE__
 target_link_libraries(test_socket ${LIB_LIB})
+
+# test_bytearray
+add_executable(test_bytearray tests/test_bytearray.cpp)
+add_dependencies(test_bytearray azure)
+force_redefine_file_macro_for_sources(test_bytearray)     # 修改__FILE__
+target_link_libraries(test_bytearray ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
