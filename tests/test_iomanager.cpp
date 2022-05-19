@@ -44,8 +44,8 @@ void test_fiber() {
 }
 
 void test1() {
-    azure::IOManager iom(2, false);
-    // iom.schedule(&test_fiber);
+    azure::IOManager iom(1);
+    // azure::IOManager iom(2, false);
     iom.schedule(&test_fiber);
 }
 
@@ -61,7 +61,7 @@ void test_timer() {
 }
 
 int main(int argc, char **argv) {
-    // test1();
-    test_timer();
+    test1();
+    // test_timer();
     return 0;
 }

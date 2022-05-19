@@ -61,7 +61,7 @@ IOManager::IOManager(size_t thread_num, bool use_caller, const std::string &name
     rt = epoll_ctl(m_epollfd, EPOLL_CTL_ADD, m_tickleFds[0], &event);   // 注册管道读事件
     AZURE_ASSERT(!rt);
 
-    contextResize(32);                  // 默认大小64
+    contextResize(32);                  // 默认大小32
 
     start();                            // 默认启动
 }
