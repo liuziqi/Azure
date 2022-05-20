@@ -32,6 +32,7 @@ set(LIB_SRC
     src/address.cpp
     src/socket.cpp
     src/bytearray.cpp
+    src/http/http.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -115,6 +116,12 @@ add_executable(test_bytearray tests/test_bytearray.cpp)
 add_dependencies(test_bytearray azure)
 force_redefine_file_macro_for_sources(test_bytearray)     # 修改__FILE__
 target_link_libraries(test_bytearray ${LIB_LIB})
+
+# test_http
+add_executable(test_http tests/test_http.cpp)
+add_dependencies(test_http azure)
+force_redefine_file_macro_for_sources(test_http)     # 修改__FILE__
+target_link_libraries(test_http ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
