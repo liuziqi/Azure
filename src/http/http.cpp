@@ -16,7 +16,7 @@ HttpMethod StringToHttpMethod(const std::string &m) {
 
 HttpMethod CharsToHttpMethod(const char *m) {
 #define XX(num, name, string) \
-    if(strcmp(#string, m) == 0) { \
+    if(strncmp(#string, m, strlen(#string)) == 0) { \
         return HttpMethod::name; \
     }
     HTTP_METHOD_MAP(XX)
@@ -133,7 +133,7 @@ bool HttpRequest::hasCookie(const std::string &key, std::string *val) const {
     return true;
 }
 
-std::ostream &HttpRequest::dump(std::ostream &os) {
+std::ostream &HttpRequest::dump(std::ostream &os) const {
     os << HttpMethodToString(m_method) << " "
        << m_path
        << (m_query.empty() ? "" : "?")
@@ -164,6 +164,12 @@ std::ostream &HttpRequest::dump(std::ostream &os) {
     return os;
 }
 
+std::string HttpRequest::toString() const {
+    std::stringstream ss;
+    dump(ss);
+    return ss.str();
+}
+
 HttpResponse::HttpResponse(uint8_t version, bool close)
     : m_status(HttpStatus::OK)
     , m_version(version)
@@ -183,7 +189,7 @@ void HttpResponse::delHeader(const std::string &key) {
     m_headers.erase(key);
 }
 
-std::ostream &HttpResponse::dump(std::ostream &os) {
+std::ostream &HttpResponse::dump(std::ostream &os) const {
     os << "HTTP/"
        << ((uint32_t)(m_version >> 4))
        << "."
@@ -209,6 +215,12 @@ std::ostream &HttpResponse::dump(std::ostream &os) {
         os << "\r\n";
     }
     return os;
+}
+
+std::string HttpResponse::toString() const {
+    std::stringstream ss;
+    dump(ss);
+    return ss.str();
 }
 
 }

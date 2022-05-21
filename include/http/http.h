@@ -253,7 +253,8 @@ public:
         return getAs(m_headers, key, def);
     }
 
-    std::ostream &dump(std::ostream &os);
+    std::ostream &dump(std::ostream &os) const;
+    std::string toString() const;
 
 private:
     HttpMethod m_method;
@@ -307,7 +308,8 @@ public:
         return getAs(m_headers, key, def);
     }
 
-    std::ostream &dump(std::ostream &os);
+    std::ostream &dump(std::ostream &os) const;
+    std::string toString() const;
 
 private:
     HttpStatus m_status;

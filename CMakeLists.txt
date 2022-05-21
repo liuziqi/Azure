@@ -33,6 +33,9 @@ set(LIB_SRC
     src/socket.cpp
     src/bytearray.cpp
     src/http/http.cpp
+    include/http/http11_parser.cc
+    include/http/httpclient_parser.cc
+    src/http/http_parser.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -122,6 +125,12 @@ add_executable(test_http tests/test_http.cpp)
 add_dependencies(test_http azure)
 force_redefine_file_macro_for_sources(test_http)     # 修改__FILE__
 target_link_libraries(test_http ${LIB_LIB})
+
+# test_http_parser
+add_executable(test_http_parser tests/test_http_parser.cpp)
+add_dependencies(test_http_parser azure)
+force_redefine_file_macro_for_sources(test_http_parser)     # 修改__FILE__
+target_link_libraries(test_http_parser ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
