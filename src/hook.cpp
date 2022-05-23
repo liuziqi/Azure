@@ -125,7 +125,7 @@ retry:
         azure::Timer::ptr timer;
         std::weak_ptr<timer_info> winfo(tinfo);         // weak info
 
-        if((uint64_t)-1 != to) {                        // m_recvTimeout 和 m_sendTimeout 的初始值是 (uint64_t)-1
+        if((uint64_t)-1 != to) {                        // m_readTimeout 和 m_sendTimeout 的初始值是 (uint64_t)-1
             timer = iom->addConditionTimer(to, [winfo, fd, iom, event](){
                 auto t = winfo.lock();                  // 超时事件放入定时器，当定时器到达时间，强制cancel
                 if(!t || t->cancelled) {
@@ -145,11 +145,11 @@ retry:
             return - 1;
         }
         else {
-            AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> YieldToHold";
+            // AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> YieldToHold";
 
             azure::Fiber:: YieldToHold();               // 执行成功，让出当前协程执行时间，被唤醒有两种条件：1. 定时器超时；2. 完成了io
 
-            AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> Exec";
+            // AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> Exec";
 
             if(timer) {
                 timer->cancel();

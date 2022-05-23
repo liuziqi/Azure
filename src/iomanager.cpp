@@ -127,7 +127,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
     ++m_pendingEventCount;
     fd_ctx->events = (Event)(fd_ctx->events | event);
 
-    AZURE_LOG_INFO(g_logger) << "fd_ctx->events=" << fd_ctx->events;
+    // AZURE_LOG_INFO(g_logger) << "fd_ctx->events=" << fd_ctx->events;
 
     FdContext::EventContext &event_ctx = fd_ctx->getContext(event);
     AZURE_ASSERT(!event_ctx.scheduler && !event_ctx.fiber && !event_ctx.cb);

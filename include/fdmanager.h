@@ -37,7 +37,7 @@ private:
     bool m_userNonblock: 1;
     bool m_isClosed: 1;
     int m_fd;
-    uint64_t m_recvTimeout;
+    uint64_t m_readTimeout;
     uint64_t m_sendTimeout;
     azure::IOManager *m_iomanager;
 };

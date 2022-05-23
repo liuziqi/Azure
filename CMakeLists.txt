@@ -36,6 +36,10 @@ set(LIB_SRC
     include/http/http11_parser.cc
     include/http/httpclient_parser.cc
     src/http/http_parser.cpp
+    src/tcp_server.cpp
+    src/stream.cpp
+    src/socket_stream.cpp
+    src/http_session.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -131,6 +135,18 @@ add_executable(test_http_parser tests/test_http_parser.cpp)
 add_dependencies(test_http_parser azure)
 force_redefine_file_macro_for_sources(test_http_parser)     # 修改__FILE__
 target_link_libraries(test_http_parser ${LIB_LIB})
+
+# test_tcp_server
+add_executable(test_tcp_server tests/test_tcp_server.cpp)
+add_dependencies(test_tcp_server azure)
+force_redefine_file_macro_for_sources(test_tcp_server)     # 修改__FILE__
+target_link_libraries(test_tcp_server ${LIB_LIB})
+
+# echo_server
+add_executable(echo_server example/echo_server.cpp)
+add_dependencies(echo_server azure)
+force_redefine_file_macro_for_sources(echo_server)     # 修改__FILE__
+target_link_libraries(echo_server ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

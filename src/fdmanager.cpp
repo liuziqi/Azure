@@ -11,7 +11,7 @@ FdCtx::FdCtx(int fd)
     , m_userNonblock(false)
     , m_isClosed(false)
     , m_fd(fd)
-    , m_recvTimeout(-1)     // uint64_t的最大值
+    , m_readTimeout(-1)     // uint64_t的最大值
     , m_sendTimeout(-1) {
     init();
 }
@@ -21,7 +21,7 @@ bool FdCtx::init() {
     if(m_isInit) {
         return true;
     }
-    m_recvTimeout = -1;
+    m_readTimeout = -1;
     m_sendTimeout = -1;
 
     struct stat fd_stat;
@@ -57,7 +57,7 @@ FdCtx::~FdCtx() {
 
 void FdCtx::setTimeout(int type, uint64_t v) {
     if(type == SO_RCVTIMEO) {
-        m_recvTimeout = v;
+        m_readTimeout = v;
     }
     else {
         m_sendTimeout = v;
@@ -65,7 +65,7 @@ void FdCtx::setTimeout(int type, uint64_t v) {
 }
 
 uint64_t FdCtx::getTimeout(int type) {
-    return type == SO_RCVTIMEO ? m_recvTimeout : m_sendTimeout;
+    return type == SO_RCVTIMEO ? m_readTimeout : m_sendTimeout;
 }
 
 FdManager::FdManager() {
