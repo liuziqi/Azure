@@ -217,8 +217,10 @@ void Scheduler::run() {
                 cb_fiber->reset(nullptr);           // callback reset
             }
             else {
+                // AZURE_LOG_INFO(g_logger) << "----- cb_fiber.use_count()=" << cb_fiber.use_count();
                 cb_fiber->m_state = Fiber::HOLD;
                 cb_fiber.reset();
+                // AZURE_LOG_INFO(g_logger) << "----- cb_fiber.use_count()=" << cb_fiber.use_count();
             }
         }
         else {

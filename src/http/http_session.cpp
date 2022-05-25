@@ -1,24 +1,28 @@
 #include "http/http_session.h"
 #include "http/http_parser.h"
+#include "log.h"
 
 namespace azure {
 
 namespace http {
 
+static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
+
 HttpSession::HttpSession(Socket::ptr sock, bool owner)
-    :SocketStream(sock, owner) {
+    : SocketStream(sock, owner) {
 }
 
 HttpRequest::ptr HttpSession::recvRequest() {
     HttpRequestParser::ptr parser(new HttpRequestParser);
     uint64_t buffer_size = HttpRequestParser::GetHttpRequestBufferSize();
+    // uint64_t buffer_size = 100;
     std::shared_ptr<char> buffer(new char[buffer_size], [](char *ptr){delete[] ptr;});
     char *data = buffer.get();
     int offset = 0;
 
     do {
         int len = read(data + offset, buffer_size - offset);
-        if(len < 0) {
+        if(len <= 0) {
             return nullptr;
         }
         len += offset;
@@ -40,7 +44,7 @@ HttpRequest::ptr HttpSession::recvRequest() {
         std::string body;
         body.reserve(length);
 
-        if(length > offset) {
+        if(length >= offset) {
             body.append(data, offset);
         }
         else {
@@ -49,6 +53,7 @@ HttpRequest::ptr HttpSession::recvRequest() {
         length -= offset;
         if(length > 0) {
             if(readFixSize(&body[body.size()], length) <= 0) {
+                close();
                 return nullptr;
             }
         }

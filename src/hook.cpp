@@ -5,6 +5,7 @@
 #include "fdmanager.h"
 #include "log.h"
 #include "config.h"
+#include "macro.h"
 
 static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 
@@ -78,8 +79,8 @@ struct timer_info {
 };
 
 // 一般来说，是一个协程在执行该函数
-template<typename OriginFun, typename ... Args>
-static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t event, int timeout_so, Args &&... args) {
+template<typename OriginFun, typename... Args>
+static ssize_t do_io(int fd, OriginFun fun, const char* hook_fun_name, uint32_t event, int timeout_so, Args&&... args) {
     if(!azure::t_hook_enable) {
         // NOTE std::forward通常是用于完美转发
         // 完美转发主要目的一般都是为了避免拷贝，同时调用正确的函数版本
@@ -91,9 +92,6 @@ static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t 
         return fun(fd, std::forward<Args>(args)...);
     }
 
-    // AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << ">";
-
-    // 假设不存在就不是socket
     azure::FdCtx::ptr ctx = azure::FdMgr::GetInstance()->get(fd);
     if(!ctx) {
         return fun(fd, std::forward<Args>(args)...);
@@ -104,7 +102,6 @@ static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t 
         return -1;
     }
 
-    // 不是socket或者用户设置了nonblock则执行原来的函数
     if(!ctx->isSocket() || ctx->getUserNonblock()) {
         return fun(fd, std::forward<Args>(args)...);
     }
@@ -113,21 +110,18 @@ static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t 
     std::shared_ptr<timer_info> tinfo(new timer_info);
 
 retry:
-    ssize_t n = fun(fd, std::forward<Args>(args)...);   // read 或 accept 等的返回值
-    while(-1 == n && errno == EINTR) {                  // 中断重试
+    ssize_t n = fun(fd, std::forward<Args>(args)...);
+    while(n == -1 && errno == EINTR) {
         n = fun(fd, std::forward<Args>(args)...);
     }
-    if(-1 == n && errno == EAGAIN) {                    // 非阻塞立即返回，需要做异步操作
-
-        // AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << ">";
-
-        azure::IOManager *iom = azure::IOManager::GetThis();
+    if(n == -1 && errno == EAGAIN) {
+        azure::IOManager* iom = azure::IOManager::GetThis();
         azure::Timer::ptr timer;
-        std::weak_ptr<timer_info> winfo(tinfo);         // weak info
+        std::weak_ptr<timer_info> winfo(tinfo);
 
-        if((uint64_t)-1 != to) {                        // m_readTimeout 和 m_sendTimeout 的初始值是 (uint64_t)-1
-            timer = iom->addConditionTimer(to, [winfo, fd, iom, event](){
-                auto t = winfo.lock();                  // 超时事件放入定时器，当定时器到达时间，强制cancel
+        if(to != (uint64_t)-1) {
+            timer = iom->addConditionTimer(to, [winfo, fd, iom, event]() {
+                auto t = winfo.lock();
                 if(!t || t->cancelled) {
                     return;
                 }
@@ -137,20 +131,15 @@ retry:
         }
 
         int rt = iom->addEvent(fd, (azure::IOManager::Event)(event));
-        if(rt) {                                       // 执行失败，取消定时器
+        if(AZURE_UNLIKELY(rt)) {
             AZURE_LOG_ERROR(g_logger) << hook_fun_name << " addEvent(" << fd << ", " << event << ")";
             if(timer) {
                 timer->cancel();
             }
-            return - 1;
-        }
+            return -1;
+        } 
         else {
-            // AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> YieldToHold";
-
-            azure::Fiber:: YieldToHold();               // 执行成功，让出当前协程执行时间，被唤醒有两种条件：1. 定时器超时；2. 完成了io
-
-            // AZURE_LOG_DEBUG(g_logger) << "do_io<" << hook_fun_name << "> Exec";
-
+            azure::Fiber::YieldToHold();
             if(timer) {
                 timer->cancel();
             }
@@ -158,11 +147,10 @@ retry:
                 errno = tinfo->cancelled;
                 return -1;
             }
-
             goto retry;
         }
     }
-    // io执行成功，返回n
+    
     return n;
 }
 

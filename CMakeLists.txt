@@ -39,7 +39,9 @@ set(LIB_SRC
     src/tcp_server.cpp
     src/stream.cpp
     src/socket_stream.cpp
-    src/http_session.cpp
+    src/http/http_session.cpp
+    src/http/http_server.cpp
+    src/http/servlet.cpp
 )
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
@@ -147,6 +149,12 @@ add_executable(echo_server example/echo_server.cpp)
 add_dependencies(echo_server azure)
 force_redefine_file_macro_for_sources(echo_server)     # 修改__FILE__
 target_link_libraries(echo_server ${LIB_LIB})
+
+# test_http_server
+add_executable(test_http_server tests/test_http_server.cpp)
+add_dependencies(test_http_server azure)
+force_redefine_file_macro_for_sources(test_http_server)     # 修改__FILE__
+target_link_libraries(test_http_server ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
