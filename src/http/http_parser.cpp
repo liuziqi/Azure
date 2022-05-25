@@ -10,13 +10,21 @@ namespace http {
 static Logger::ptr g_logger= AZURE_LOG_NAME("system");
 
 static ConfigVar<uint64_t>::ptr g_http_request_buffer_size = 
-    Config::Lookup("http.request.buffer_size", uint64_t(4 * 1024), "http request buffer size");             // 4kb
+    Config::Lookup("http.request.buffer_size", uint64_t(4 * 1024), "http request buffer size");                 // 4kb
 
 static ConfigVar<uint64_t>::ptr g_http_request_max_body_size =
-    Config::Lookup("http.request.max_body_size", uint64_t(64 * 1024 * 1024), "http request max body size"); // 64mb
+    Config::Lookup("http.request.max_body_size", uint64_t(64 * 1024 * 1024), "http request max body size");     // 64mb
+
+static ConfigVar<uint64_t>::ptr g_http_response_buffer_size =
+    Config::Lookup("http.response.buffer_size", uint64_t(4 * 1024), "http response buffer size");               // 4kb
+
+static ConfigVar<uint64_t>::ptr g_http_response_max_body_size =
+    Config::Lookup("http.response.max_body_size", uint64_t(64 * 1024 * 1024), "http response max body size");   // 64mb
 
 static uint64_t s_http_request_buffer_size = 0;
 static uint64_t s_http_request_max_body_size = 0;
+static uint64_t s_http_response_buffer_size = 0;
+static uint64_t s_http_response_max_body_size = 0;
 
 uint64_t HttpRequestParser::GetHttpRequestBufferSize() {
     return s_http_request_buffer_size;
@@ -26,6 +34,14 @@ uint64_t HttpRequestParser::GetHttpRequestMaxBodySize() {
     return s_http_request_max_body_size;
 }
 
+uint64_t HttpResponseParser::GetHttpResponseBufferSize() {
+    return s_http_response_buffer_size;
+}
+
+uint64_t HttpResponseParser::GetHttpResponseMaxBodySize() {
+    return s_http_response_max_body_size;
+}
+
 // 匿名命名空间
 namespace {
 
@@ -33,6 +49,8 @@ struct _RequestSizeIniter {
     _RequestSizeIniter() {
         s_http_request_buffer_size = g_http_request_buffer_size->getValue();
         s_http_request_max_body_size = g_http_request_max_body_size->getValue();
+        s_http_response_buffer_size = g_http_response_buffer_size->getValue();
+        s_http_response_max_body_size = g_http_response_max_body_size->getValue();
 
         g_http_request_buffer_size->addListener([](const uint64_t ov, const uint64_t nv){
             s_http_request_buffer_size = nv;
@@ -40,6 +58,14 @@ struct _RequestSizeIniter {
 
         g_http_request_max_body_size->addListener([](const uint64_t ov, const uint64_t nv){
             s_http_request_max_body_size = nv;
+        });
+
+        g_http_response_buffer_size->addListener([](const uint64_t ov, const uint64_t nv){
+            s_http_response_buffer_size = nv;
+        });
+
+        g_http_response_max_body_size->addListener([](const uint64_t ov, const uint64_t nv){
+            s_http_response_max_body_size = nv;
         });
     }
 };
@@ -187,7 +213,7 @@ void on_response_http_field(void *data, const char *field, size_t flen, const ch
     HttpResponseParser *parser = static_cast<HttpResponseParser*>(data);
     if(flen == 0) {
         AZURE_LOG_WARN(g_logger) << "invalid http response field length == 0";
-        parser->setError(1002);
+        // parser->setError(1002);
         return;
     }
     parser->getData()->setHeader(std::string(field, flen), std::string(value, vlen));

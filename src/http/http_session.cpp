@@ -1,12 +1,9 @@
 #include "http/http_session.h"
 #include "http/http_parser.h"
-#include "log.h"
 
 namespace azure {
 
 namespace http {
-
-static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 
 HttpSession::HttpSession(Socket::ptr sock, bool owner)
     : SocketStream(sock, owner) {
@@ -42,18 +39,20 @@ HttpRequest::ptr HttpSession::recvRequest() {
     int64_t length = parser->getContentLength();
     if(length > 0) {
         std::string body;
-        body.reserve(length);
+        body.resize(length);
 
+        int len = 0;
         if(length >= offset) {
-            body.append(data, offset);
+            memcpy(&body[0], data, offset);
+            len = offset;
         }
         else {
-            body.append(data, length);
+            memcpy(&body[0], data, length);
+            len = length;
         }
         length -= offset;
         if(length > 0) {
-            if(readFixSize(&body[body.size()], length) <= 0) {
-                close();
+            if(readFixSize(&body[len], length) <= 0) {
                 return nullptr;
             }
         }
