@@ -146,7 +146,7 @@ std::ostream &HttpRequest::dump(std::ostream &os) const {
        << ((uint32_t)(m_version & 0x0f))
        << "\r\n";
     
-    os << "Connection: " << (m_close ? "close" : "keep-alive") << "\r\n";
+    os << "connection: " << (m_close ? "close" : "keep-alive") << "\r\n";
 
     for(auto &i : m_headers) {
         if(strcasecmp(i.first.c_str(), "connection") != 0) {

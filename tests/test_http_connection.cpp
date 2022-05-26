@@ -34,6 +34,13 @@ void run() {
         return;
     }
     AZURE_LOG_INFO(g_logger) << "rsp: " << std::endl << *rsp;
+
+    AZURE_LOG_INFO(g_logger) << "===============================================";
+
+    auto rt2 = azure::http::HttpConnection::DoGet("http://www.sylar.top/blog/", 300);
+    AZURE_LOG_INFO(g_logger) << "result=" << rt2->result
+                             << " error=" << rt2->error
+                             << " rsp=" << (rt2->response ? rt2->response->toString() : "");
 }
 
 int main(int argc, char **argv) {

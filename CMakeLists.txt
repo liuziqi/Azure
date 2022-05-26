@@ -15,6 +15,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic -O0 -g -std=c++11 -Wall -Wno-d
 
 # find_library(YAMLCPP yaml-cpp)
 
+include_directories(.)
+include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 set(LIB_SRC 
@@ -33,8 +35,8 @@ set(LIB_SRC
     src/socket.cpp
     src/bytearray.cpp
     src/http/http.cpp
-    include/http/http11_parser.cc
-    include/http/httpclient_parser.cc
+    # include/http/http11_parser.cc
+    # include/http/httpclient_parser.cc
     src/http/http_parser.cpp
     src/tcp_server.cpp
     src/stream.cpp
@@ -44,6 +46,10 @@ set(LIB_SRC
     src/http/servlet.cpp
     src/http/http_connection.cpp
 )
+
+ragelmaker(include/http/http11_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/include/http)
+ragelmaker(include/http/httpclient_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/include/http)
+ragelmaker(include/uri.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # 添加动态库(SHARED)，库的源文件指定为LIB_SRC
 add_library(azure SHARED ${LIB_SRC})
@@ -162,6 +168,12 @@ add_executable(test_http_connection tests/test_http_connection.cpp)
 add_dependencies(test_http_connection azure)
 force_redefine_file_macro_for_sources(test_http_connection)     # 修改__FILE__
 target_link_libraries(test_http_connection ${LIB_LIB})
+
+# test_uri
+add_executable(test_uri tests/test_uri.cpp)
+add_dependencies(test_uri azure)
+force_redefine_file_macro_for_sources(test_uri)     # 修改__FILE__
+target_link_libraries(test_uri ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

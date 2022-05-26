@@ -33,6 +33,7 @@ static thread_local bool t_hook_enable = false;     // 标记当前线程是否�
     XX(sendto) \
     XX(sendmsg) \
     XX(close) \
+    XX(shutdown) \
     XX(fcntl) \
     XX(ioctl) \
     XX(getsockopt) \
@@ -233,6 +234,7 @@ int connect_with_timeout(int fd, const struct sockaddr *addr, socklen_t addrlen,
         return connect_f(fd, addr, addrlen);
     }
 
+    AZURE_LOG_DEBUG(g_logger) << "sockfd=" << fd << " nonblock=" << (fcntl_f(fd, F_GETFL, 0) & O_NONBLOCK);
     int n = connect_f(fd, addr, addrlen);
     if(n == 0) {
         return 0;
@@ -358,6 +360,13 @@ int close(int fd) {
         azure::FdMgr::GetInstance()->del(fd);
     }
     return close_f(fd);
+}
+
+int shutdown(int sockfd, int how) {
+    if(!azure::t_hook_enable) {
+        return shutdown_f(sockfd, how);
+    }
+    return shutdown_f(sockfd, how);
 }
 
 // socket option

@@ -75,6 +75,9 @@ extern sendmsg_fun sendmsg_f;
 typedef int (*close_fun)(int fd);
 extern close_fun close_f;
 
+typedef int (*shutdown_fun)(int sockfd, int how);
+extern shutdown_fun shutdown_f;
+
 // socket option
 typedef int (*fcntl_fun)(int fd, int cmd, ... /* arg */ );
 extern fcntl_fun fcntl_f;

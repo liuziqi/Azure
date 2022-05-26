@@ -237,7 +237,10 @@ uint64_t HttpResponseParser::getContentLength() {
     return m_data->getHeaderAs<uint64_t>("content-length", 0);
 }
 
-size_t HttpResponseParser::execute(const char *data, size_t len) {
+size_t HttpResponseParser::execute(const char *data, size_t len, bool chunk) {
+    if(chunk) {
+        httpclient_parser_init(&m_parser);
+    }
     size_t offset = httpclient_parser_execute(&m_parser, data, len, 0);
     memmove((void*)data, data + offset, (len - offset));    // 将缓冲区的内容向前移
     return offset;

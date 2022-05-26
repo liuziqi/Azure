@@ -14,7 +14,7 @@ void test_socket() {
     }
 
     azure::Socket::ptr sock = azure::Socket::CreateTCP(addr);
-    addr->setPort(80);
+    addr->setPort(0);
     if(sock->connect(addr)) {
         AZURE_LOG_ERROR(g_logger) << "connect " << addr->toString() << " connected";
     }
