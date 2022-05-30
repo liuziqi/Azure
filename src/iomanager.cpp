@@ -90,7 +90,7 @@ void IOManager::contextResize(size_t size) {
     }
 }
 
-// 1 success, 0 retry, -1 error
+// 0 success, -1 error
 int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
     FdContext *fd_ctx = nullptr;
     RWMutexType::ReadLock lock(m_mutex);

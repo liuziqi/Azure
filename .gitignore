@@ -3,4 +3,5 @@ lib
 bin
 log
 tmp
+doc
 .vscode

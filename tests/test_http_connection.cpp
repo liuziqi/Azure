@@ -5,6 +5,14 @@
 
 azure::Logger::ptr g_logger = AZURE_LOG_ROOT();
 
+void test_pool() {
+    azure::http::HttpConnectionPool::ptr pool(new azure::http::HttpConnectionPool("www.sylar.top", "", 80, 10, 1000 * 30, 5));
+    azure::IOManager::GetThis()->addTimer(1000, [pool](){
+        auto r = pool->doGet("/", 300);
+        AZURE_LOG_INFO(g_logger) << r->toString();
+    }, true);
+}
+
 void run() {
     azure::Address::ptr addr = azure::Address::LookupAnyIPAddress("www.sylar.top:80");
     if(!addr) {
@@ -41,6 +49,9 @@ void run() {
     AZURE_LOG_INFO(g_logger) << "result=" << rt2->result
                              << " error=" << rt2->error
                              << " rsp=" << (rt2->response ? rt2->response->toString() : "");
+
+    AZURE_LOG_INFO(g_logger) << "===============================================";
+    test_pool();
 }
 
 int main(int argc, char **argv) {

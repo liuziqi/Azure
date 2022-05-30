@@ -8,8 +8,21 @@ namespace http {
 
 azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 
+std::string HttpResult::toString() const {
+    std::stringstream ss;
+    ss << "[HttpResult result=" << result
+       << " error=" << error
+       << " response=" << (response ? response->toString() : "nullptr")
+       << "]";
+    return ss.str();
+}
+
 HttpConnection::HttpConnection(Socket::ptr sock, bool owner)
     : SocketStream(sock, owner) {
+}
+
+HttpConnection::~HttpConnection() {
+    AZURE_LOG_DEBUG(g_logger) << "HttpConnection::~HttpConnection";
 }
 
 HttpResponse::ptr HttpConnection::recvResponse() {
@@ -219,7 +232,7 @@ HttpResult::ptr HttpConnection::DoRequest(HttpRequest::ptr req, Uri::ptr uri, ui
     if(!addr) {
         return std::make_shared<HttpResult>((int)HttpResult::Error::INVALID_HOST, nullptr, "invalid host: " + uri->getHost());
     }
-
+    
     Socket::ptr sock = Socket::CreateTCP(addr);
     if(!sock) {
         return std::make_shared<HttpResult>((int)HttpResult::Error::CREATE_SOCKET_ERROR, nullptr, "create socket fail: " 
@@ -265,19 +278,67 @@ HttpConnectionPool::HttpConnectionPool(const std::string &host, const std::strin
 
 HttpConnection::ptr HttpConnectionPool::getConnection() {
     uint64_t now_ms = azure::GetCurrentMS();
+    std::vector<HttpConnection*> invalid_conns;
+    HttpConnection *ptr = nullptr;
     MutexType::Lock lock(m_mutex);
     while(!m_conns.empty()) {
         auto conn = *m_conns.begin();
-        if(conn->isConnected()) {
-            m_conns.pop_front();
+        m_conns.pop_front();
+        if(!conn->isConnected()) {
+            invalid_conns.push_back(conn);
             continue;
         }
+        // 链接超时失效
+        if((conn->m_createTime + m_maxAliveTime) > now_ms) {
+            invalid_conns.push_back(conn);
+            continue;
+        }
+        ptr = conn;
+        break;
     }
+
+    lock.unlock();
+    for(auto i : invalid_conns) {
+            delete i;
+        }
+    m_total -= invalid_conns.size();
+
+    if(!ptr) {
+        IPAddress::ptr addr = Address::LookupAnyIPAddress(m_host);
+        if(!addr) {
+            AZURE_LOG_ERROR(g_logger) << "get addr fail: " << m_host;
+            return nullptr;
+        }
+        addr->setPort(m_port);
+        Socket::ptr sock = Socket::CreateTCP(addr);
+        if(!sock) {
+            AZURE_LOG_ERROR(g_logger) << "create sock fail: " << *addr;
+            return nullptr;
+        }
+        if(!sock->connect(addr)) {
+            AZURE_LOG_ERROR(g_logger) << "sock connect fail: " << *addr;
+            return nullptr;
+        }
+        ptr = new HttpConnection(sock);
+        ++m_total;
+    }
+    return HttpConnection::ptr(ptr, std::bind(&HttpConnectionPool::ReleasePtr, std::placeholders::_1, this));
+}
+
+void HttpConnectionPool::ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool) {
+    ++ptr->m_request;
+    if(!ptr->isConnected() || (ptr->m_createTime + pool->m_maxAliveTime) >= azure::GetCurrentMS() || ptr->m_request >= pool->m_maxRequest) {
+        delete ptr;
+        --pool->m_total;
+        return;
+    }
+    MutexType::Lock lock(pool->m_mutex);
+    pool->m_conns.push_back(ptr);
 }
 
 HttpResult::ptr HttpConnectionPool::doGet(const std::string &url, uint64_t timeout_ms, 
                                         const std::map<std::string, std::string> &headers, const std::string &body) {
-
+    return doRequest(HttpMethod::GET, url, timeout_ms, headers, body);
 }
 
 HttpResult::ptr HttpConnectionPool::doGet(Uri::ptr uri, uint64_t timeout_ms, 
@@ -293,7 +354,7 @@ HttpResult::ptr HttpConnectionPool::doGet(Uri::ptr uri, uint64_t timeout_ms,
 
 HttpResult::ptr HttpConnectionPool::doPost(const std::string &url, uint64_t timeout_ms, 
                                         const std::map<std::string, std::string> &headers, const std::string &body) {
-
+    return doRequest(HttpMethod::POST, url, timeout_ms, headers, body);
 }
 
 HttpResult::ptr HttpConnectionPool::doPost(Uri::ptr uri, uint64_t timeout_ms, 
@@ -312,6 +373,7 @@ HttpResult::ptr HttpConnectionPool::doRequest(HttpMethod method, const std::stri
     HttpRequest::ptr req = std::make_shared<HttpRequest>();
     req->setPath(url);
     req->setMethod(method);
+    req->setClose(false);
     bool has_host = false;
     for(auto &i : headers) {
         if(strcasecmp(i.first.c_str(), "connection") == 0) {
@@ -367,7 +429,7 @@ HttpResult::ptr HttpConnectionPool::doRequest(HttpRequest::ptr req, uint64_t tim
 
     int rt = conn->sendRequest(req);
     if(rt == 0) {
-        return std::make_shared<HttpResult>((int)HttpResult::Error::SEND_CLOSE_BY_PEER, nullptr, "send rquest closed by peer: " + addr->toString());
+        return std::make_shared<HttpResult>((int)HttpResult::Error::SEND_CLOSE_BY_PEER, nullptr, "send rquest closed by peer: " + sock->getRemoteAddress()->toString());
     }
     if(rt < 0) {
         return std::make_shared<HttpResult>((int)HttpResult::Error::SEND_SOCKET_ERROR, nullptr, "send socket error, errno=" 
@@ -376,7 +438,7 @@ HttpResult::ptr HttpConnectionPool::doRequest(HttpRequest::ptr req, uint64_t tim
 
     auto rsp = conn->recvResponse();
     if(!rsp) {
-        return std::make_shared<HttpResult>((int)HttpResult::Error::TIMEOUT, nullptr, "recv response timeout: " + addr->toString()
+        return std::make_shared<HttpResult>((int)HttpResult::Error::TIMEOUT, nullptr, "recv response timeout: " + sock->getRemoteAddress()->toString()
                                              + " timeout_ms:" + std::to_string(timeout_ms));
     }
 

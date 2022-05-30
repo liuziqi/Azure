@@ -14,7 +14,7 @@ namespace http {
 
 struct HttpResult {
     typedef std::shared_ptr<HttpResult> ptr;
-
+    
     enum class Error {
         OK = 0,
         INVALID_URL = 1,
@@ -33,12 +33,18 @@ struct HttpResult {
         , response(_response)
         , error(_error) {}
 
+    std::string toString() const;
+
     int result;
     HttpResponse::ptr response;
     std::string error;
 };
 
+class HttpConnectionPool;
+
 class HttpConnection : public SocketStream {
+friend class HttpConnectionPool;
+
 public:
     typedef std::shared_ptr<HttpConnection> ptr;
 
@@ -77,9 +83,14 @@ public:
     static HttpResult::ptr DoRequest(HttpRequest::ptr req, Uri::ptr uri, uint64_t timeout_ms);
 
     HttpConnection(Socket::ptr sock, bool owner=true);
+    ~HttpConnection();
 
     HttpResponse::ptr recvResponse();
     int sendRequest(HttpRequest::ptr req);
+
+private:
+    uint64_t m_createTime = 0;
+    int32_t m_request = 0;
 };
 
 class HttpConnectionPool {
@@ -124,7 +135,7 @@ public:
                                     const std::map<std::string, std::string> &headers={},
                                     const std::string &body="");
 
-    HttpResult::ptr doRequest(HttpRequest::ptr req, Uri::ptr uri, uint64_t timeout_ms);
+    HttpResult::ptr doRequest(HttpRequest::ptr req, uint64_t timeout_ms);
 
 private:
     static void ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool);

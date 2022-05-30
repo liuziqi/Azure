@@ -234,7 +234,7 @@ int connect_with_timeout(int fd, const struct sockaddr *addr, socklen_t addrlen,
         return connect_f(fd, addr, addrlen);
     }
 
-    AZURE_LOG_DEBUG(g_logger) << "sockfd=" << fd << " nonblock=" << (fcntl_f(fd, F_GETFL, 0) & O_NONBLOCK);
+    // AZURE_LOG_DEBUG(g_logger) << "sockfd=" << fd << " nonblock=" << (fcntl_f(fd, F_GETFL, 0) & O_NONBLOCK);
     int n = connect_f(fd, addr, addrlen);
     if(n == 0) {
         return 0;
