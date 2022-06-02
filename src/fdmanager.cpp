@@ -91,6 +91,9 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create) {
 
     RWMutexType::WriteLock lock2(m_mutex);
     FdCtx::ptr ctx(new FdCtx(fd));
+    if(fd >= (int)m_data.size()) {
+        m_data.resize(fd * 1.5);
+    }
     m_data[fd] = ctx;
     return ctx;
 }

@@ -16,7 +16,7 @@ public:
 
     HttpRequestParser();
 
-    size_t execute(const char *data, size_t len);
+    size_t execute(char *data, size_t len);
     int isFinished();
     int hasError();
 
@@ -45,7 +45,7 @@ public:
 
     HttpResponseParser();
 
-    size_t execute(const char *data, size_t len, bool chunk);
+    size_t execute(char *data, size_t len, bool chunk);
     int isFinished();
     int hasError();
 

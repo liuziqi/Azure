@@ -112,6 +112,7 @@ static ssize_t do_io(int fd, OriginFun fun, const char* hook_fun_name, uint32_t 
 
 retry:
     ssize_t n = fun(fd, std::forward<Args>(args)...);
+
     while(n == -1 && errno == EINTR) {
         n = fun(fd, std::forward<Args>(args)...);
     }

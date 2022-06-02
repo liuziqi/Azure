@@ -9,7 +9,7 @@ static Logger::ptr g_logger = AZURE_LOG_NAME("system");
 static ConfigVar<uint64_t>::ptr g_tcp_server_read_timeout = Config::Lookup("tcp_server.read_timeout", (uint64_t)(60 * 1000 * 2), "tcp server read timeout");
 
 TcpServer::TcpServer(azure::IOManager *worker, azure::IOManager *accept_worker)
-    : m_worker(worker)
+    : m_ioworker(worker)
     , m_acceptWorker(accept_worker)
     , m_readTimeout(g_tcp_server_read_timeout->getValue())
     , m_name("azure/1.0.0")
@@ -68,7 +68,7 @@ void TcpServer::startAccept(Socket::ptr sock) {
         Socket::ptr client = sock->accept();
         if(client) {
             client->setRecvTimeout(m_readTimeout);
-            m_worker->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
+            m_ioworker->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
         }
         else {
             AZURE_LOG_ERROR(g_logger) << "accept errno=" << errno << " errstr=" << strerror(errno);

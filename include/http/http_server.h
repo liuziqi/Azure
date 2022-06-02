@@ -25,13 +25,6 @@ protected:
     virtual void handleClient(Socket::ptr client) override;
 
 private:
-    /**
-     * @brief 
-     * @details 
-     * @exception 
-     * @todo 
-     * @note 
-     */
     bool m_isKeepalive;
     ServletDispatch::ptr m_dispatch;
 };

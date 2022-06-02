@@ -1,5 +1,3 @@
-// ragel -G2 -C http11_parser.rl -o http11_parser.cc
-
 /**
  *
  * Copyright (c) 2010, Zed A. Shaw and Mongrel2 Project Contributors.

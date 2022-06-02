@@ -175,5 +175,11 @@ add_dependencies(test_uri azure)
 force_redefine_file_macro_for_sources(test_uri)     # 修改__FILE__
 target_link_libraries(test_uri ${LIB_LIB})
 
+# my_http_server
+add_executable(my_http_server samples/my_http_server.cpp)
+add_dependencies(my_http_server azure)
+force_redefine_file_macro_for_sources(my_http_server)     # 修改__FILE__
+target_link_libraries(my_http_server ${LIB_LIB})
+
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

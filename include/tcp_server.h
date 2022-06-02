@@ -37,7 +37,7 @@ protected:
 
 private:
     std::vector<Socket::ptr> m_socks;   // 监听成功的socket
-    IOManager *m_worker;
+    IOManager *m_ioworker;
     IOManager *m_acceptWorker;
     uint64_t m_readTimeout;
     std::string m_name;

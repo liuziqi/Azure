@@ -33,7 +33,11 @@ void HttpServer::handleClient(Socket::ptr client) {
 
         session->sendResponse(rsp);
 
+        if(!m_isKeepalive || req->isClosed()) {
+            break;
+        }
     } while(m_isKeepalive);
+    session->close();
 }
 
 }

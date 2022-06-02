@@ -498,6 +498,7 @@ public:
 
     /**
      * @brief 设置日志级别
+     * @note 日志器只输出等于或高于自身日志级别的日志
      */
     void setLevel(LogLevel::Level val) {m_level = val;}
 

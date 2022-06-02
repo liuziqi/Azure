@@ -208,7 +208,7 @@ bool Socket::close() {
         return true;
     }
     m_isConnected = false;
-    if(m_sockfd == -1) {
+    if(m_sockfd != -1) {
         ::close(m_sockfd);
         m_sockfd = -1;
     }

@@ -138,10 +138,10 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb) {
     if(cb) {
         event_ctx.cb.swap(cb);
     }
-    // 有用吗？
     else {
         event_ctx.fiber = Fiber::GetThis();
-        AZURE_ASSERT(event_ctx.fiber->getState() == Fiber::EXEC);
+        // DEBUG
+        // AZURE_ASSERT2(event_ctx.fiber->getState() == Fiber::EXEC, "state=" << event_ctx.fiber->getState());
     }
     return 0;
 }
