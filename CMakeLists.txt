@@ -35,8 +35,6 @@ set(LIB_SRC
     src/socket.cpp
     src/bytearray.cpp
     src/http/http.cpp
-    # include/http/http11_parser.cc
-    # include/http/httpclient_parser.cc
     src/http/http_parser.cpp
     src/tcp_server.cpp
     src/stream.cpp
@@ -45,6 +43,8 @@ set(LIB_SRC
     src/http/http_server.cpp
     src/http/servlet.cpp
     src/http/http_connection.cpp
+    src/daemon.cpp
+    src/env.cpp
 )
 
 ragelmaker(include/http/http11_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/include/http)
@@ -180,6 +180,18 @@ add_executable(my_http_server samples/my_http_server.cpp)
 add_dependencies(my_http_server azure)
 force_redefine_file_macro_for_sources(my_http_server)     # 修改__FILE__
 target_link_libraries(my_http_server ${LIB_LIB})
+
+# test_daemon
+add_executable(test_daemon tests/test_daemon.cpp)
+add_dependencies(test_daemon azure)
+force_redefine_file_macro_for_sources(test_daemon)     # 修改__FILE__
+target_link_libraries(test_daemon ${LIB_LIB})
+
+# test_env
+add_executable(test_env tests/test_env.cpp)
+add_dependencies(test_env azure)
+force_redefine_file_macro_for_sources(test_env)     # 修改__FILE__
+target_link_libraries(test_env ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
