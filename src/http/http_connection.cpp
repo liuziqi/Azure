@@ -19,6 +19,7 @@ std::string HttpResult::toString() const {
 
 HttpConnection::HttpConnection(Socket::ptr sock, bool owner)
     : SocketStream(sock, owner) {
+    m_createTime = azure::GetCurrentMS();
 }
 
 HttpConnection::~HttpConnection() {
@@ -289,7 +290,7 @@ HttpConnection::ptr HttpConnectionPool::getConnection() {
             continue;
         }
         // 链接超时失效
-        if((conn->m_createTime + m_maxAliveTime) > now_ms) {
+        if((conn->m_createTime + m_maxAliveTime) <= now_ms) {
             invalid_conns.push_back(conn);
             continue;
         }
@@ -300,7 +301,7 @@ HttpConnection::ptr HttpConnectionPool::getConnection() {
     lock.unlock();
     for(auto i : invalid_conns) {
             delete i;
-        }
+    }
     m_total -= invalid_conns.size();
 
     if(!ptr) {
@@ -327,7 +328,7 @@ HttpConnection::ptr HttpConnectionPool::getConnection() {
 
 void HttpConnectionPool::ReleasePtr(HttpConnection *ptr, HttpConnectionPool *pool) {
     ++ptr->m_request;
-    if(!ptr->isConnected() || (ptr->m_createTime + pool->m_maxAliveTime) >= azure::GetCurrentMS() || ptr->m_request >= pool->m_maxRequest) {
+    if(!ptr->isConnected() || (ptr->m_createTime + pool->m_maxAliveTime) <= azure::GetCurrentMS() || ptr->m_request >= pool->m_maxRequest) {
         delete ptr;
         --pool->m_total;
         return;

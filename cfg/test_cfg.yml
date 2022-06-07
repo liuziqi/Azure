@@ -61,7 +61,7 @@ class:
       - name: azure4
         age: 15
         sex: false
-    azuresYa:
+    azuresya:
       - name: azure5
         age: 17
         sex: false

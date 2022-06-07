@@ -590,6 +590,11 @@ public:
     static void LoadFromYaml(const YAML::Node &root);
 
     /**
+     * @brief 加载文件夹中的配置项
+     */
+    static void LoadFromConfDir(const std::string &path);
+
+    /**
      * @brief 遍历配置模块里面所有配置项
      * @param cb 配置项回调函数
      */

@@ -1,6 +1,7 @@
+#include <yaml-cpp/yaml.h>
 #include "config.h"
 #include "log.h"
-#include <yaml-cpp/yaml.h>
+#include "env.h"
 
 #if 0
 azure::ConfigVar<int>::ptr g_int_value_config = azure::Config::Lookup("system.port", (int)8080, "system port");
@@ -193,6 +194,10 @@ void test_log() {
     AZURE_LOG_INFO(system_log) << "hello system";
 }
 
+void test_loadconf() {
+    azure::Config::LoadFromConfDir("cfg");
+}
+
 int main(int argc, char **argv) {
     // test_yaml();
     // test_config();
@@ -207,8 +212,11 @@ int main(int argc, char **argv) {
     //                             << " value=" << var->toString();
     // });
 
-    YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_cfg.yml");
-    azure::Config::LoadFromYaml(root);
+    // YAML::Node root = YAML::LoadFile("/home/lzq/Azure/cfg/log_cfg.yml");
+    // azure::Config::LoadFromYaml(root);
+
+    azure::EnvMgr::GetInstance()->init(argc, argv);
+    test_loadconf();
 
     return 0;
 }

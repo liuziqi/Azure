@@ -1,6 +1,10 @@
 #include "config.h"
+#include "env.h"
+#include "log.h"
 
 namespace azure {
+
+static azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
 
 ConfigVarBase::ptr Config::LookupBase(const std::string name) {
     RWMutexType::ReadLock lock(GetMutex());
@@ -52,6 +56,25 @@ void Config::LoadFromYaml(const YAML::Node &root) {
                 ss << n.second;
                 var->fromString(ss.str());
             }
+        }
+    }
+}
+
+void Config::LoadFromConfDir(const std::string &path) {
+    std::string absolute_path = azure::EnvMgr::GetInstance()->getAbsolutePath(path);
+    // AZURE_LOG_INFO(g_logger) << "absolute_path=" << absolute_path;
+    std::vector<std::string> files;
+    FSUtil::ListAllFile(files, absolute_path, ".yml");
+
+    for(auto &f : files) {
+        try {
+            AZURE_LOG_INFO(g_logger) << "f=" << f;
+            YAML::Node root = YAML::LoadFile(f);
+            LoadFromYaml(root);
+            AZURE_LOG_INFO(g_logger) << "LoadConfFile file=" << f << " ok";
+        }
+        catch(...) {
+            AZURE_LOG_ERROR(g_logger) << "LoadConfFile file=" << f << " failed";
         }
     }
 }
