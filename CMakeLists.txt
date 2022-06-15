@@ -45,6 +45,7 @@ set(LIB_SRC
     src/http/http_connection.cpp
     src/daemon.cpp
     src/env.cpp
+    src/application.cpp
 )
 
 ragelmaker(include/http/http11_parser.rl LIB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/include/http)
@@ -192,6 +193,12 @@ add_executable(test_env tests/test_env.cpp)
 add_dependencies(test_env azure)
 force_redefine_file_macro_for_sources(test_env)     # 修改__FILE__
 target_link_libraries(test_env ${LIB_LIB})
+
+# test_application
+add_executable(test_application tests/test_application.cpp)
+add_dependencies(test_application azure)
+force_redefine_file_macro_for_sources(test_application)     # 修改__FILE__
+target_link_libraries(test_application ${LIB_LIB})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

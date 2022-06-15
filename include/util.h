@@ -26,6 +26,8 @@ std::string Time2Str(time_t ts=time(0), const std::string &format="%Y-%m-%d %H:%
 class FSUtil {
 public:
     static void ListAllFile(std::vector<std::string> &files, const std::string &path, const std::string subfix);
+    static bool IsRunningPidfile(const std::string& pidfile);
+    static bool Mkdir(const std::string& dirname);
 };
 
 }

@@ -3,6 +3,8 @@
 #include "log.h"
 #include "env.h"
 
+azure::Logger::ptr g_logger = AZURE_LOG_NAME("system");
+
 #if 0
 azure::ConfigVar<int>::ptr g_int_value_config = azure::Config::Lookup("system.port", (int)8080, "system port");
 azure::ConfigVar<float>::ptr g_float_value_config = azure::Config::Lookup("system.port", (float)80.80, "system port");    // 用来测试key相同但类型不同的情况
@@ -217,6 +219,9 @@ int main(int argc, char **argv) {
 
     azure::EnvMgr::GetInstance()->init(argc, argv);
     test_loadconf();
+    AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "======";
+    // sleep(10);
+    // test_loadconf();
 
     return 0;
 }

@@ -712,12 +712,15 @@ struct LogIniter {
             for(auto &i : new_value) {
                 auto it = old_value.find(i);
                 azure::Logger::ptr logger;
-                if(it == old_value.end()) { // 新的有，旧的没有，新增logger
-                    logger = AZURE_LOG_NAME(i.name);    // 新增logger
+                if(it == old_value.end()) {                 // 新的有，旧的没有，新增logger
+                    logger = AZURE_LOG_NAME(i.name);        // 新增logger
                 }
                 else {  // 新的有，旧的也有
                     if(!(i == *it)) {
                         logger = AZURE_LOG_NAME(i.name);    // 两个不等，更新logger
+                    }
+                    else {
+                        continue;
                     }
                 }
                 // 新增和更新共有的操作
@@ -733,6 +736,9 @@ struct LogIniter {
                     }
                     else if(a.type == 2) {
                         ap.reset(new StdoutLogAppender);
+                    }
+                    else {
+                        continue;
                     }
                     ap->setLevel(a.level);
                     if(!a.formatter.empty()) {
@@ -752,9 +758,9 @@ struct LogIniter {
 
             for(auto &i : old_value) {
                 auto it = new_value.find(i);
-                if(it == new_value.end()) { // 旧的有，新的没有，删除logger
+                if(it == new_value.end()) {     // 旧的有，新的没有，删除logger
                     auto logger = AZURE_LOG_NAME(i.name);
-                    logger->setLevel((LogLevel::Level)100);
+                    logger->setLevel(LogLevel::UNKNOWN);
                     logger->clearAppender();    // 删除了就用root logger输出
                 }
             }

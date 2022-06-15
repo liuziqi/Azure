@@ -94,6 +94,9 @@ public:
     virtual int32_t handle(azure::http::HttpRequest::ptr request, 
                            azure::http::HttpResponse::ptr response,
                            azure::http::HttpSession::ptr session) override;
+
+private:
+    std::string m_serverName;
 };
 
 }

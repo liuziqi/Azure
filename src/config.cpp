@@ -1,3 +1,5 @@
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "config.h"
 #include "env.h"
 #include "log.h"
@@ -60,6 +62,9 @@ void Config::LoadFromYaml(const YAML::Node &root) {
     }
 }
 
+static std::map<std::string, int64_t> s_file2modifytime;
+static azure::Mutex s_mutex;
+
 void Config::LoadFromConfDir(const std::string &path) {
     std::string absolute_path = azure::EnvMgr::GetInstance()->getAbsolutePath(path);
     // AZURE_LOG_INFO(g_logger) << "absolute_path=" << absolute_path;
@@ -67,6 +72,15 @@ void Config::LoadFromConfDir(const std::string &path) {
     FSUtil::ListAllFile(files, absolute_path, ".yml");
 
     for(auto &f : files) {
+        {   
+            struct stat st;
+            lstat(f.c_str(), &st);
+            azure::Mutex::Lock lock(s_mutex);
+            if(s_file2modifytime[f] == st.st_mtime) {
+                continue;
+            }
+            s_file2modifytime[f] = st.st_mtime;
+        }
         try {
             AZURE_LOG_INFO(g_logger) << "f=" << f;
             YAML::Node root = YAML::LoadFile(f);
