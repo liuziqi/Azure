@@ -706,9 +706,6 @@ azure::ConfigVar<std::set<LogDefine>>::ptr g_log_defines = azure::Config::Lookup
 struct LogIniter {
     LogIniter() {
         g_log_defines->addListener([](const std::set<LogDefine> &old_value, const std::set<LogDefine> &new_value) {
-
-            AZURE_LOG_INFO(AZURE_LOG_ROOT()) << "on_logger_conf_changed";
-
             for(auto &i : new_value) {
                 auto it = old_value.find(i);
                 azure::Logger::ptr logger;

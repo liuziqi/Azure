@@ -130,7 +130,7 @@ void Scheduler::setThis() {
 
 // 由线程执行的函数
 void Scheduler::run() {
-    AZURE_LOG_INFO(g_logger) << m_name << " run";
+    AZURE_LOG_INFO(g_logger) << m_name << "run";
 
     set_hook_enable(true);
 
